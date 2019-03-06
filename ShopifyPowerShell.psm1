@@ -1,44 +1,42 @@
 #Requires -Modules WebServicesPowerShellProxyBuilder
 
-$ShopifyCredential = [System.Management.Automation.PSCredential]::Empty
-$GetShopifyCredentialScriptBlock = {
-    Import-Clixml -Path $env:USERPROFILE\ShopifyCredential.txt
-}
-
-function New-ShopifyCredential {
-    Get-Credential -Message "Enter your Shopify API Key as the username and your API Password as the password" | 
-    Export-Clixml -Path $env:USERPROFILE\ShopifyCredential.txt
-}
-
-function Get-ShopifyCredential {
-    & $GetShopifyCredentialScriptBlock
-}
-
-function Set-GetShopifyCredentialScriptBlock {
+function Set-ShopifyCredential {
     param (
-        $ScriptBlock
+        [Parameter(Mandatory)]$Credential
     )
-    $Script:GetShopifyCredentialScriptBlock = $ScriptBlock
+    $Script:Credential = $Credential
 }
-
+function Get-ShopifyCredential {
+    if ($Script:Credential) {
+        $Script:Credential
+    } else {
+        Throw "You need to call Set-ShopifyCredential"
+    }
+}
 function Invoke-ShopifyAPIFunction{
     [cmdletbinding()]
     param(
         $HttpMethod,
         $ShopName,
         $Resource,
+        $Subresource,
         $Body
         )
     
-    $Credential = Get-ShopifyCredential
+    $URIRoot = "https://$($Credential.UserName):$($Credential.Password)@$ShopName.myshopify.com/admin/$Resource"
 
-    $URI = "https://$($Credential.UserName):$($Credential.GetNetworkCredential().Password)@$ShopName.myshopify.com/admin/$Resource.json"
+    if ($Subresource){
+        $URI = $URIRoot + "/$Subresource" + ".json"
+    } else {
+        $URI = $URIRoot + ".json"
+    }    
+    
 
- #   $Response = if ($Body) {
- #       Invoke-RestMethod -Method $HttpMethod -Credential $Credential -Uri $URI  -Body $Body
- #   } else {
-        Invoke-RestMethod -Credential $Credential -Uri $URI -Method $HttpMethod 
-#    }
+    $Response = if ($Body) {
+        Invoke-RestMethod -Credential $Credential -Method $HttpMethod -Uri $URI -Body $Body
+    } else {
+        Invoke-RestMethod -Credential $Credential -Method $HttpMethod -Uri $URI 
+    }
     
     $Response
 }
@@ -93,23 +91,18 @@ function New-ShopifyProduct{
         $InventoryQuantity = 0
     )
 
-    $HttpMethod = "Get"
+    $HttpMethod = "Post"
     $Resource = "products"
 
     $Body = @"
-{
-    "product": {
-        "title": "$Title",
-        "body_html": "$Description",
-        "variants: [
-            {
-                "price":"$Price",
-                "sku":"$UPC",
-                "id":"$EBSItemNumber"
-                "inventory_quantity":$InventoryQuantity
-            }
-        ]
-    }
-}    
+{"product": {
+"title": "$Title",
+"body_html": "$Description",
+"variants: [{
+"price":"$Price",
+"sku":"$EBSItemNumber",
+"barcode":"$UPC"
+"inventory_quantity":"$InventoryQuantity"
+}]}}    
 "@
 }
