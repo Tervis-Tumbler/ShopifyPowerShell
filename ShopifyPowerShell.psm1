@@ -13,7 +13,7 @@ function Get-ShopifyCredential {
         Throw "You need to call Set-ShopifyCredential"
     }
 }
-function Invoke-ShopifyAPIFunction{
+function Invoke-ShopifyRestAPIFunction{
     [cmdletbinding()]
     param(
         $HttpMethod,
@@ -23,7 +23,7 @@ function Invoke-ShopifyAPIFunction{
         $Body
         )
     
-    $URIRoot = "https://$($Credential.UserName):$($Credential.Password)@$ShopName.myshopify.com/admin/$Resource"
+    $URIRoot = "https://$($Credential.UserName):$($Credential.GetNetworkCredential().Password)@$ShopName.myshopify.com/admin/$Resource"
 
     if ($Subresource){
         $URI = $URIRoot + "/$Subresource" + ".json"
@@ -33,15 +33,52 @@ function Invoke-ShopifyAPIFunction{
     
 
     $Response = if ($Body) {
-        Invoke-RestMethod -Credential $Credential -Method $HttpMethod -Uri $URI -Body $Body
+        Invoke-RestMethod -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body
     } else {
-        Invoke-RestMethod -Credential $Credential -Method $HttpMethod -Uri $URI 
+        Invoke-RestMethod -Credential $Credential -Uri $URI -Method $HttpMethod
     }
     
     $Response
 }
+function Invoke-ShopifyAPIFunction{
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory)]$ShopName,
+        [parameter(Mandatory)]$HttpMethod,
+        [parameter(Mandatory)]$Body
+    )
+    $Credential = Get-ShopifyCredential
+    $URI = "https://$ShopName.myshopify.com/admin/api/graphql.json"
+    $Headers = @{
+        "X-Shopify-Access-Token" = "$($Credential.GetNetworkCredential().Password)"
+        "Content-Type" = "application/graphql"
+    }
 
-function Get-ShopifyInventoryItems{
+    $Response = Invoke-RestMethod -Method $HttpMethod -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
+    $Response
+}
+function Invoke-ShopifyGraphQLTest{
+    $Body = @"
+    {
+        shop {
+          products(first: 5) {
+            edges {
+              node {
+                id
+                handle
+              }
+            }
+            pageInfo {
+              hasNextPage
+            }
+          }
+        }
+      }
+"@
+
+    Invoke-ShopifyAPIFunction -ShopName ospreystoredev -HttpMethod Post -Body $Body
+}
+function Get-ShopifyRestInventoryItems{
     [cmdletbinding()]
     param(
         [Parameter(mandatory)]$ShopName,
@@ -49,37 +86,28 @@ function Get-ShopifyInventoryItems{
     )
     #$ItemIDsSeparatedByCommas needs to be refactored.
 
-    $HttpMethod = "Get"
     $Resource = "inventory_items.json?ids=$ItemIDsSeparatedByCommas"
 
-    Invoke-ShopifyAPIFunction -HttpMethod $HttpMethod -Resource $Resource -ShopName $ShopName
+    Invoke-ShopifyRestAPIFunction -HttpMethod Get -Resource $Resource -ShopName $ShopName
 }
 
-function Get-ShopifyShop{
+function Get-ShopifyRestShop{
     [cmdletbinding()]
     param(
         [Parameter(mandatory)]$ShopName
     )
-
-    $HttpMethod = "Get"
-    $Resource = "shop"
-
-    Invoke-ShopifyAPIFunction -HttpMethod $HttpMethod -Resource $Resource -ShopName $ShopName
+    Invoke-ShopifyRestAPIFunction -HttpMethod Get -Resource Shop -ShopName $ShopName
 }
 
-function Get-ShopifyProducts{
+function Get-ShopifyRestProducts{
     [cmdletbinding()]
     param(
         [parameter(mandatory)]$ShopName
     )
-
-    $HttpMethod = "Get"
-    $Resource = "products"
-
-    Invoke-ShopifyAPIFunction -HttpMethod $HttpMethod -Resource $Resource -ShopName $ShopName
+    Invoke-ShopifyRestAPIFunction -HttpMethod Get -Resource Products -ShopName $ShopName
 }
 
-function New-ShopifyProduct{
+function New-ShopifyRestProduct{
     [cmdletbinding()]
     param(
         [parameter(mandatory)]$ShopName,
@@ -90,19 +118,22 @@ function New-ShopifyProduct{
         [parameter(mandatory)]$Price,
         $InventoryQuantity = 0
     )
-
-    $HttpMethod = "Post"
-    $Resource = "products"
-
     $Body = @"
-{"product": {
-"title": "$Title",
-"body_html": "$Description",
-"variants: [{
-"price":"$Price",
-"sku":"$EBSItemNumber",
-"barcode":"$UPC"
-"inventory_quantity":"$InventoryQuantity"
-}]}}    
+{
+    "product": {
+        "title": "$Title",
+        "body_html": "$Description",
+        "variants: [
+            {
+                "price":"$Price",
+                "sku":"$EBSItemNumber",
+                "barcode":"$UPC"
+                "inventory_quantity":"$InventoryQuantity"
+            }
+        ]
+    }
+}    
 "@
+    Invoke-ShopifyRestAPIFunction -HttpMethod Post  -Resource Products @PSBoundParameters
 }
+
