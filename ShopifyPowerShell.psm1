@@ -13,6 +13,22 @@ function Get-ShopifyCredential {
         Throw "You need to call Set-ShopifyCredential"
     }
 }
+
+function Convert-HashtableToQueryString {
+    param (
+        [Parameter(Mandatory,ValueFromPipeline)]
+        [hashtable]$Hashtable
+    )
+
+    $QueryString = "?"
+
+    foreach ($Key in $Hashtable.Keys) {
+        $QueryString += "$Key=$($Hashtable[$Key])&"
+    }
+
+    return $QueryString.TrimEnd("&")
+}
+
 function Invoke-ShopifyRestAPIFunction{
     [cmdletbinding()]
     param(
@@ -20,7 +36,8 @@ function Invoke-ShopifyRestAPIFunction{
         $ShopName,
         $Resource,
         $Subresource,
-        $Body
+        $Body,
+        [hashtable]$Endpoints
         )
     
     $Credential = Get-ShopifyCredential
@@ -28,18 +45,21 @@ function Invoke-ShopifyRestAPIFunction{
     $URIRoot = "https://$($Credential.UserName):$($Credential.GetNetworkCredential().Password)@$ShopName.myshopify.com/admin/$($Resource.toLower())"
 
     if ($Subresource){
-        $URI = $URIRoot + "/$Subresource" + ".json"
+        $URI = $URIRoot + ("/$Subresource").ToLower() + ".json"
     } else {
         $URI = $URIRoot + ".json"
     }    
     
+    if ($Endpoints) {
+        $URI += $Endpoints | Convert-HashtableToQueryString
+    }
 
     $Response = if ($Body) {
-        Invoke-RestMethod -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body
+        Invoke-RestMethod -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body -ContentType "application/json"
     } else {
         Invoke-RestMethod -Credential $Credential -Uri $URI -Method $HttpMethod
     }
-    
+
     $Response
 }
 function Invoke-ShopifyAPIFunction{
@@ -137,4 +157,26 @@ function New-ShopifyRestProduct{
 }    
 "@
     Invoke-ShopifyRestAPIFunction -HttpMethod Post  -Resource Products @PSBoundParameters
+}
+
+function Get-ShopifyRestProductsAll {
+    param (
+        $ShopName
+    )
+
+    $Limit = 250
+    $Products = @()
+    $Page = 1
+    $Count = Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Products -Subresource Count | Select-Object -ExpandProperty count
+
+    for ($i = 0; $i -lt $Count; $i += $Limit) {
+        Write-Progress -Activity "Getting all Shopify products for $ShopName" -Status "Items retrieved:" -PercentComplete ($i * 100 / $Count) -CurrentOperation $i
+        $Query = @{limit=$Limit;page=$Page}
+        $Response = Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Products -Endpoints $Query | Select-Object -ExpandProperty products
+        $Products += $Response
+        $Page++
+    }
+    Write-Progress -Activity "Getting all Shopify products for $ShopName" -Completed
+
+    return $Products
 }
