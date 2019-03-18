@@ -23,7 +23,9 @@ function Invoke-ShopifyRestAPIFunction{
         $Body
         )
     
-    $URIRoot = "https://$($Credential.UserName):$($Credential.GetNetworkCredential().Password)@$ShopName.myshopify.com/admin/$Resource"
+    $Credential = Get-ShopifyCredential
+
+    $URIRoot = "https://$($Credential.UserName):$($Credential.GetNetworkCredential().Password)@$ShopName.myshopify.com/admin/$($Resource.toLower())"
 
     if ($Subresource){
         $URI = $URIRoot + "/$Subresource" + ".json"
@@ -136,4 +138,3 @@ function New-ShopifyRestProduct{
 "@
     Invoke-ShopifyRestAPIFunction -HttpMethod Post  -Resource Products @PSBoundParameters
 }
-
