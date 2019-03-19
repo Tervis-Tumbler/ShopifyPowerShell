@@ -169,15 +169,14 @@ function Get-ShopifyRestProductsAll {
 
     $Limit = 250
     $Products = @()
-    $Page = 1
     $Count = Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Products -Subresource Count | Select-Object -ExpandProperty count
+    $Pages = [System.Math]::Ceiling($Count/$Limit)
 
-    for ($i = 0; $i -lt $Count; $i += $Limit) {
-        Write-Progress -Activity "Getting all Shopify products for $ShopName" -Status "Items retrieved: $i" -PercentComplete ($i * 100 / $Count)
+    for ($Page = 1; $Page -le $Pages; $Page++) {
+        Write-Progress -Activity "Getting all Shopify products for $ShopName" -Status "Items retrieved: $($Products.Count)" -PercentComplete ($Page * 100 / $Pages)
         $Query = @{limit=$Limit;page=$Page}
         $Response = Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Products -Endpoints $Query | Select-Object -ExpandProperty products
         $Products += $Response
-        $Page++
     }
     Write-Progress -Activity "Getting all Shopify products for $ShopName" -Completed
 
