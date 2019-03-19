@@ -53,14 +53,17 @@ function Invoke-ShopifyRestAPIFunction{
     if ($Endpoints) {
         $URI += $Endpoints | Convert-HashtableToQueryString
     }
+    
+    $Response = Invoke-WebRequest -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body -ContentType "application/json"
 
-    $Response = if ($Body) {
-        Invoke-RestMethod -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body -ContentType "application/json"
-    } else {
-        Invoke-RestMethod -Credential $Credential -Uri $URI -Method $HttpMethod
+    $ApiCallLimitStats = $Response.Headers.'X-Shopify-Shop-Api-Call-Limit' -split "/"
+    if ($ApiCallLimitStats[0]/$ApiCallLimitStats[1] -gt .9) {
+        Write-Progress -Activity "Throttling Shopify REST API"
+        Start-Sleep -Seconds 10
+        Write-Progress -Activity "Throttling Shopify REST API" -Completed
     }
 
-    $Response
+    $Response.Content | ConvertFrom-Json
 }
 function Invoke-ShopifyAPIFunction{
     [CmdletBinding()]
@@ -161,7 +164,7 @@ function New-ShopifyRestProduct{
 
 function Get-ShopifyRestProductsAll {
     param (
-        $ShopName
+       [Parameter(Mandatory)]$ShopName
     )
 
     $Limit = 250
@@ -170,7 +173,7 @@ function Get-ShopifyRestProductsAll {
     $Count = Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Products -Subresource Count | Select-Object -ExpandProperty count
 
     for ($i = 0; $i -lt $Count; $i += $Limit) {
-        Write-Progress -Activity "Getting all Shopify products for $ShopName" -Status "Items retrieved:" -PercentComplete ($i * 100 / $Count) -CurrentOperation $i
+        Write-Progress -Activity "Getting all Shopify products for $ShopName" -Status "Items retrieved: $i" -PercentComplete ($i * 100 / $Count)
         $Query = @{limit=$Limit;page=$Page}
         $Response = Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Products -Endpoints $Query | Select-Object -ExpandProperty products
         $Products += $Response
