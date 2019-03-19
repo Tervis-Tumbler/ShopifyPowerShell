@@ -183,3 +183,28 @@ function Get-ShopifyRestProductsAll {
 
     return $Products
 }
+
+function Set-ShopifyRestProductChannel {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$Products,
+        [Parameter(Mandatory)]
+        [ValidateSet("web","global")]$Channel
+    )
+    $Total = $Products.count
+    $i = 0
+
+    foreach ($Product in $Products) {
+        Write-Progress -Activity "Updating product channel" -CurrentOperation $Product.title -PercentComplete ($i * 100 / $Total) -Status "$i of $Total"
+        $Body = [PSCustomObject]@{
+            product = @{
+                id = $Product.id
+                published_scope = $Channel
+            }
+        } | ConvertTo-Json -Compress
+    
+        Invoke-ShopifyRestAPIFunction -HttpMethod PUT -ShopName $ShopName -Resource Products -Subresource $Product.id -Body $Body
+        $i++
+    }
+    Write-Progress -Activity "Updating product channel" -Completed
+}
