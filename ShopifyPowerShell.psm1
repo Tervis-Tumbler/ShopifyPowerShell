@@ -2,7 +2,7 @@
 
 function Set-ShopifyCredential {
     param (
-        [Parameter(Mandatory)]$Credential
+        [Parameter(Mandatory)][pscredential]$Credential
     )
     $Script:Credential = $Credential
 }
@@ -132,34 +132,36 @@ function Get-ShopifyRestProducts{
     Invoke-ShopifyRestAPIFunction -HttpMethod Get -Resource Products -ShopName $ShopName
 }
 
-function New-ShopifyRestProduct{
+function New-ShopifyRestProduct {
     [cmdletbinding()]
     param(
         [parameter(mandatory)]$ShopName,
         [parameter(mandatory)]$Title,
-        [parameter(mandatory)]$Description,
-        [parameter(mandatory)]$EBSItemNumber,
-        [parameter(mandatory)]$UPC,
+        [parameter(mandatory)]$Body_HTML,
+        [parameter(mandatory)]$SKU,
+        [parameter(mandatory)]$Barcode,
         [parameter(mandatory)]$Price,
-        $InventoryQuantity = 0
+        $Published_Scope = "global",
+        $Inventory_Quantity = 0
     )
-    $Body = @"
-{
-    "product": {
-        "title": "$Title",
-        "body_html": "$Description",
-        "variants: [
-            {
-                "price":"$Price",
-                "sku":"$EBSItemNumber",
-                "barcode":"$UPC"
-                "inventory_quantity":"$InventoryQuantity"
-            }
-        ]
-    }
-}    
-"@
-    Invoke-ShopifyRestAPIFunction -HttpMethod Post  -Resource Products @PSBoundParameters
+    
+    $Body = [PSCustomObject]@{
+        product = @{
+            title = $Title
+            body_html = $Body_HTML
+            published_scope = $Published_Scope
+            variants = @(
+                @{
+                    price = $Price
+                    sku = $SKU
+                    barcode = $Barcode
+                    inventory_quantity = $Inventory_Quantity
+                }
+            )
+        }
+    } | ConvertTo-Json -Compress -Depth 3
+
+    Invoke-ShopifyRestAPIFunction -HttpMethod Post -Resource Products @PSBoundParameters -Body $Body
 }
 
 function Get-ShopifyRestProductsAll {
