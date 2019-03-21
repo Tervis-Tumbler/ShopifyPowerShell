@@ -209,3 +209,24 @@ function Set-ShopifyRestProductChannel {
     }
     Write-Progress -Activity "Updating product channel" -Completed
 }
+
+function Remove-ShopifyRestProduct {
+    param (
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]$ID,
+        [Parameter(ValueFromPipelineByPropertyName)]$Title,
+        [Parameter(Mandatory)]$ShopName
+    )
+    begin {
+        Write-Progress -Activity "Removing products"
+        $ItemCount = 0
+    }
+    process {
+        try {
+            $ItemCount++
+            Write-Progress -Activity "Removing products" -Status "Removing $ID $Title" -CurrentOperation "Total: $ItemCount"
+            Invoke-ShopifyRestAPIFunction -HttpMethod DELETE -ShopName $ShopName -Resource Products -Subresource $ID -ErrorAction Stop | Out-Null
+        } catch {
+            Write-Warning -Message "Could not remove product $ID $Title"
+        }
+    }
+}
