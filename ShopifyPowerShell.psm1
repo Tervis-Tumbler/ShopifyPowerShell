@@ -137,11 +137,11 @@ function New-ShopifyRestProduct {
     param(
         [parameter(mandatory)]$ShopName,
         [parameter(mandatory)]$Title,
-        [parameter(mandatory)]$Body_HTML,
-        [parameter(mandatory)]$SKU,
-        [parameter(mandatory)]$Barcode,
-        [parameter(mandatory)]$Price,
-        $Published_Scope = "global",
+        <# [parameter(mandatory)] #>$Body_HTML,
+        <# [parameter(mandatory)] #>$SKU,
+        <# [parameter(mandatory)] #>$Barcode,
+        <# [parameter(mandatory)] #>$Price,
+        [ValidateSet("web","global")]$Published_Scope = "global",
         $Inventory_Quantity = 0
     )
     
@@ -161,7 +161,7 @@ function New-ShopifyRestProduct {
         }
     } | ConvertTo-Json -Compress -Depth 3
 
-    Invoke-ShopifyRestAPIFunction -HttpMethod Post -Resource Products @PSBoundParameters -Body $Body
+    Invoke-ShopifyRestAPIFunction -HttpMethod Post -Resource Products -ShopName $ShopName -Body $Body
 }
 
 function Get-ShopifyRestProductsAll {
