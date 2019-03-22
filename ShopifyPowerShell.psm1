@@ -80,8 +80,30 @@ function Invoke-ShopifyAPIFunction{
     }
 
     $Response = Invoke-RestMethod -Method $HttpMethod -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
+    while ($Response.errors -and ($Response.errors[0].message -eq "Throttled")) {
+        $Response | Invoke-ShopifyAPIThrottle
+        $Response = Invoke-RestMethod -Method $HttpMethod -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
+    }
     $Response
 }
+
+function Invoke-ShopifyAPIThrottle {
+    param (
+        [Parameter(Mandatory,ValueFromPipeline)]$Response
+    )
+    process {
+        $RequestedQueryCost = $Response.extensions.cost.requestedQueryCost
+        $RestoreRate = $Response.extensions.cost.throttleStatus.restoreRate
+        $CurrentlyAvailable = $Response.extensions.cost.throttleStatus.currentlyAvailable
+
+        if ($CurrentlyAvailable -lt $RequestedQueryCost -and $RestoreRate -gt 0) {
+            $SecondsToWait = [System.Math]::Ceiling( ($RequestedQueryCost - $CurrentlyAvailable) / $RestoreRate )
+            Write-Warning "Throttling for $SecondsToWait second$(if ($SecondsToWait -gt 1) { "s" })"
+            Start-Sleep -Seconds $SecondsToWait
+        }
+    }
+}
+
 function Invoke-ShopifyGraphQLTest{
     $Body = @"
     {
