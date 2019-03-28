@@ -69,7 +69,6 @@ function Invoke-ShopifyAPIFunction{
     [CmdletBinding()]
     param(
         [parameter(Mandatory)]$ShopName,
-        [parameter(Mandatory)]$HttpMethod,
         [parameter(Mandatory)]$Body
     )
     $Credential = Get-ShopifyCredential
@@ -79,10 +78,10 @@ function Invoke-ShopifyAPIFunction{
         "Content-Type" = "application/graphql"
     }
 
-    $Response = Invoke-RestMethod -Method $HttpMethod -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
+    $Response = Invoke-RestMethod -Method POST -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
     while ($Response.errors -and ($Response.errors[0].message -eq "Throttled")) {
         $Response | Invoke-ShopifyAPIThrottle
-        $Response = Invoke-RestMethod -Method $HttpMethod -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
+        $Response = Invoke-RestMethod -Method POST -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
     }
     $Response
 }
@@ -123,7 +122,7 @@ function Invoke-ShopifyGraphQLTest{
       }
 "@
 
-    Invoke-ShopifyAPIFunction -ShopName ospreystoredev -HttpMethod Post -Body $Body
+    Invoke-ShopifyAPIFunction -ShopName ospreystoredev -Body $Body
 }
 function Get-ShopifyRestInventoryItems{
     [cmdletbinding()]
