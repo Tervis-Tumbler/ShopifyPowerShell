@@ -206,6 +206,14 @@ function Get-ShopifyRestProductsAll {
     return $Products
 }
 
+function Get-ShopifyRestLocations {
+    param (
+        [Parameter(Mandatory)]$ShopName
+    )
+
+    Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Locations | Select-Object -ExpandProperty Locations
+}
+
 function Set-ShopifyRestProductChannel {
     param (
         [Parameter(Mandatory)]$ShopName,
@@ -250,4 +258,51 @@ function Remove-ShopifyRestProduct {
             Write-Warning -Message "Could not remove product $ID $Title"
         }
     }
+}
+
+function Find-ShopifyProduct {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$Title
+        )
+        
+    $Products = @()
+    $CurrentCursor = ""
+    
+    do {
+        $QraphQLQuery = @"
+            {
+                products(first: 50, $(if ($CurrentCursor) {"after:`"$CurrentCursor`","} ) query:`"title:*$Title*`") {
+                    edges {
+                        node {
+                            title
+                            id
+                            handle
+                            variants(first: 1) {
+                                edges {
+                                    node {
+                                        title
+                                        id
+                                        barcode
+                                        inventoryItem {
+                                            id
+                                        }
+                                        sku
+                                    }
+                                }
+                            }
+                        }
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
+                    }           
+                }
+            }    
+"@
+        $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $QraphQLQuery
+        $CurrentCursor = $Response.data.products.edges | Select-Object -Last 1 -ExpandProperty cursor
+        $Products += $Response.data.products.edges.node
+    } while ($Response.data.products.pageInfo.hasNextPage)
+    return $Products
 }
