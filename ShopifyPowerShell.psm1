@@ -324,8 +324,8 @@ function Invoke-ShopifyInventoryActivate {
         [Parameter(Mandatory)]$ShopName
     )
     
-    $EncodedItemId = $InventoryItemId | ConvertTo-Base64
-    $EncodedLocationId = $LocationId | ConvertTo-Base64
+    $EncodedItemId = "gid://shopify/InventoryItem/$InventoryItemId" | ConvertTo-Base64
+    $EncodedLocationId = "gid://shopify/Location/$LocationId" | ConvertTo-Base64
 
     $Mutation = @"
         mutation InventoryActivate {
