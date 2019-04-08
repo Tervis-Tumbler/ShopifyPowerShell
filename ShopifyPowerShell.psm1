@@ -343,3 +343,30 @@ function Invoke-ShopifyInventoryActivate {
     
     Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
 }
+
+function Set-ShopifyProductVariantInventoryPolicy {
+    param (
+        [Parameter(Mandatory)]$ProductVariantId,
+        [Parameter(Mandatory)][ValidateSet("DENY","CONTINUE")]$InventoryPolicy,
+        [Parameter(Mandatory)]$ShopName
+    )
+
+    $Mutation = @"
+    mutation SetProductVariantInventoryPolicy {
+        productVariantUpdate (input: {inventoryPolicy:$InventoryPolicy, id: "gid://shopify/ProductVariant/$ProductVariantId"}) {
+            product {
+                id
+            }
+            productVariant {
+                id
+            }
+            userErrors {
+                field
+                message
+            }
+        }
+    }
+"@
+    
+    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+}
