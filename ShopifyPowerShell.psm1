@@ -29,6 +29,16 @@ function Convert-HashtableToQueryString {
     return $QueryString.TrimEnd("&")
 }
 
+function ConvertTo-Base64 {
+    param (
+        [Parameter(Mandatory,ValueFromPipeline)][string]$String
+    )
+
+    return [System.Convert]::ToBase64String(
+        [System.Text.Encoding]::Unicode.GetBytes($String)
+    )
+}
+
 function Invoke-ShopifyRestAPIFunction{
     [cmdletbinding()]
     param(
@@ -54,10 +64,10 @@ function Invoke-ShopifyRestAPIFunction{
         $URI += $Endpoints | Convert-HashtableToQueryString
     }
     
-    $Response = Invoke-WebRequest -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body -ContentType "application/json"
+    $Response = Invoke-WebRequest -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body -ContentType "application/json" -
 
     $ApiCallLimitStats = $Response.Headers.'X-Shopify-Shop-Api-Call-Limit' -split "/"
-    if ($ApiCallLimitStats[0]/$ApiCallLimitStats[1] -gt .9) {
+    if ($ApiCallLimitStats -and ($ApiCallLimitStats[0]/$ApiCallLimitStats[1] -gt .9)) {
         Write-Progress -Activity "Throttling Shopify REST API"
         Start-Sleep -Seconds 10
         Write-Progress -Activity "Throttling Shopify REST API" -Completed
@@ -306,3 +316,5 @@ function Find-ShopifyProduct {
     } while ($Response.data.products.pageInfo.hasNextPage)
     return $Products
 }
+
+
