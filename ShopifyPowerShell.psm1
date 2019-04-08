@@ -317,4 +317,29 @@ function Find-ShopifyProduct {
     return $Products
 }
 
+function Invoke-ShopifyInventoryActivate {
+    param (
+        [Parameter(Mandatory)]$InventoryItemId,
+        [Parameter(Mandatory)]$LocationId,
+        [Parameter(Mandatory)]$ShopName
+    )
+    
+    $EncodedItemId = $InventoryItemId | ConvertTo-Base64
+    $EncodedLocationId = $LocationId | ConvertTo-Base64
 
+    $Mutation = @"
+        mutation InventoryActivate {
+            inventoryActivate (inventoryItemId: "$EncodedItemId", locationId: "$EncodedLocationId") {
+                inventoryLevel {
+                    id
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+"@
+    
+    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+}
