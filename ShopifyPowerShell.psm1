@@ -64,7 +64,7 @@ function Invoke-ShopifyRestAPIFunction{
         $URI += $Endpoints | Convert-HashtableToQueryString
     }
     
-    $Response = Invoke-WebRequest -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body -ContentType "application/json" -
+    $Response = Invoke-WebRequest -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body -ContentType "application/json"
 
     $ApiCallLimitStats = $Response.Headers.'X-Shopify-Shop-Api-Call-Limit' -split "/"
     if ($ApiCallLimitStats -and ($ApiCallLimitStats[0]/$ApiCallLimitStats[1] -gt .9)) {
