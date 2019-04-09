@@ -35,7 +35,7 @@ function ConvertTo-Base64 {
     )
 
     return [System.Convert]::ToBase64String(
-        [System.Text.Encoding]::Unicode.GetBytes($String)
+        [System.Text.Encoding]::UTF8.GetBytes($String)
     )
 }
 
@@ -235,7 +235,9 @@ function Set-ShopifyRestProductChannel {
     $i = 0
 
     foreach ($Product in $Products) {
-        Write-Progress -Activity "Updating product channel" -CurrentOperation $Product.title -PercentComplete ($i * 100 / $Total) -Status "$i of $Total"
+        if ($Total) {
+            Write-Progress -Activity "Updating product channel" -CurrentOperation $Product.title -PercentComplete ($i * 100 / $Total) -Status "$i of $Total"
+        }
         $Body = [PSCustomObject]@{
             product = @{
                 id = $Product.id
@@ -246,7 +248,9 @@ function Set-ShopifyRestProductChannel {
         Invoke-ShopifyRestAPIFunction -HttpMethod PUT -ShopName $ShopName -Resource Products -Subresource $Product.id -Body $Body
         $i++
     }
-    Write-Progress -Activity "Updating product channel" -Completed
+    if ($Total) {
+        Write-Progress -Activity "Updating product channel" -Completed
+    }
 }
 
 function Remove-ShopifyRestProduct {
