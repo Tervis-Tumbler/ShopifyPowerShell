@@ -100,12 +100,15 @@ function Invoke-ShopifyAPIFunction{
         "Content-Type" = "application/graphql"
     }
 
-    $Response = Invoke-RestMethod -Method POST -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
-    while ($Response.errors -and ($Response.errors[0].message -eq "Throttled")) {
-        $Response | Invoke-ShopifyAPIThrottle
-        $Response = Invoke-RestMethod -Method POST -Headers $Headers -ContentType "application/graphql" -Uri $URI -Body $Body
-    }
-    $Response
+    do {
+        $Response = Invoke-RestMethod -Method POST -Headers $Headers -Uri $URI -Body $Body
+        $Throttled = $Response.errors -and ($Response.errors[0].message -eq "Throttled")
+        if ($Throttled) {
+            $Response | Invoke-ShopifyAPIThrottle    
+        } else {
+            return $Response
+        }
+    } while ($Throttled)
 }
 
 function Invoke-ShopifyAPIThrottle {
@@ -126,10 +129,13 @@ function Invoke-ShopifyAPIThrottle {
 }
 
 function Invoke-ShopifyGraphQLTest{
+    param (
+        [Parameter(Mandatory)]$ShopName
+    )
     $Body = @"
     {
         shop {
-          products(first: 5) {
+          products(first: 250) {
             edges {
               node {
                 id
@@ -144,8 +150,9 @@ function Invoke-ShopifyGraphQLTest{
       }
 "@
 
-    Invoke-ShopifyAPIFunction -ShopName ospreystoredev -Body $Body
+    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Body
 }
+
 function Get-ShopifyRestInventoryItems{
     [cmdletbinding()]
     param(
