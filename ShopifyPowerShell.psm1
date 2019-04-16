@@ -42,17 +42,22 @@ function ConvertTo-Base64 {
 function Invoke-ShopifyRestAPIFunction{
     [cmdletbinding()]
     param(
-        $HttpMethod,
-        $ShopName,
-        $Resource,
+        [Parameter(Mandatory)]$HttpMethod,
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$Resource,
         $Subresource,
         $Body,
         [hashtable]$Endpoints
-        )
+    )
     
     $Credential = Get-ShopifyCredential
+    $AuthToken = "$($Credential.UserName):$($Credential.GetNetworkCredential().Password)" | ConvertTo-Base64
+    $Headers = @{
+        Authorization = "Basic $AuthToken"
+        "Content-Type" = "application/json"
+    }
 
-    $URIRoot = "https://$($Credential.UserName):$($Credential.GetNetworkCredential().Password)@$ShopName.myshopify.com/admin/$($Resource.toLower())"
+    $URIRoot = "https://$ShopName.myshopify.com/admin/$($Resource.toLower())"
 
     if ($Subresource){
         $URI = $URIRoot + ("/$Subresource").ToLower() + ".json"
@@ -64,16 +69,23 @@ function Invoke-ShopifyRestAPIFunction{
         $URI += $Endpoints | Convert-HashtableToQueryString
     }
     
-    $Response = Invoke-WebRequest -Credential $Credential -Uri $URI -Method $HttpMethod -Body $Body -ContentType "application/json"
+    do {
+        try {
+            $Response = Invoke-WebRequest -Uri $URI -Method $HttpMethod -Body $Body -Headers $Headers -ErrorAction Stop
+            $StatusCode = $Response.StatusCode
+        } catch [System.Net.WebException] {
+            $StatusCode = $_.Exception.Response.StatusCode
+            if ($StatusCode -eq 429) {
+                $RetryDelay = [int]$_.Exception.Response.Headers["Retry-After"]
+                Write-Warning -Message "Throttling for $RetryDelay seconds"
+                Start-Sleep -Seconds $RetryDelay 
+            } else {
+                throw $_.Exception
+            }
+        }
+    } while ($StatusCode -ne 200)
 
-    $ApiCallLimitStats = $Response.Headers.'X-Shopify-Shop-Api-Call-Limit' -split "/"
-    if ($ApiCallLimitStats -and ($ApiCallLimitStats[0]/$ApiCallLimitStats[1] -gt .9)) {
-        Write-Progress -Activity "Throttling Shopify REST API"
-        Start-Sleep -Seconds 10
-        Write-Progress -Activity "Throttling Shopify REST API" -Completed
-    }
-
-    $Response.Content | ConvertFrom-Json
+    return $Response.Content | ConvertFrom-Json
 }
 function Invoke-ShopifyAPIFunction{
     [CmdletBinding()]
