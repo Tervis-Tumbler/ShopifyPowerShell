@@ -73,6 +73,7 @@ function Invoke-ShopifyRestAPIFunction{
         try {
             $Response = Invoke-WebRequest -Uri $URI -Method $HttpMethod -Body $Body -Headers $Headers -ErrorAction Stop
             $StatusCode = $Response.StatusCode
+            return $Response.Content | ConvertFrom-Json
         } catch [System.Net.WebException] {
             $StatusCode = $_.Exception.Response.StatusCode
             if ($StatusCode -eq 429) {
@@ -80,13 +81,12 @@ function Invoke-ShopifyRestAPIFunction{
                 Write-Warning -Message "Throttling for $RetryDelay seconds"
                 Start-Sleep -Seconds $RetryDelay 
             } else {
-                throw $_.Exception
+                Write-Error $_
             }
         }
-    } while ($StatusCode -ne 200)
-
-    return $Response.Content | ConvertFrom-Json
+    } while ($StatusCode -eq 429)
 }
+
 function Invoke-ShopifyAPIFunction{
     [CmdletBinding()]
     param(
