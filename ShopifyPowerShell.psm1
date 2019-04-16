@@ -393,3 +393,20 @@ function Set-ShopifyProductVariantInventoryPolicy {
     
     Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
 }
+
+function New-ShopifyImageByURL {
+    # Does not work currently
+    param (
+        [Parameter(Mandatory)]$ImageUrl,
+        [Parameter(Mandatory)]$ProductId,
+        [Parameter(Mandatory)]$ShopName
+    )
+    
+    $Body = @{
+        image = @{
+            src = $ImageUrl
+        }
+    } | ConvertTo-Json -Compress
+
+    Invoke-ShopifyRestAPIFunction -HttpMethod POST -ShopName $ShopName -Resource Products -Subresource "$ProductId/images" -Body $Body
+}
