@@ -214,6 +214,13 @@ function New-ShopifyRestProduct {
     Invoke-ShopifyRestAPIFunction -HttpMethod Post -Resource Products -ShopName $ShopName -Body $Body
 }
 
+function Get-ShopifyRestProductCount {
+    param (
+        [Parameter(Mandatory)]$ShopName
+    )
+    Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Products -Subresource Count | Select-Object -ExpandProperty count
+}
+
 function Get-ShopifyRestProductsAll {
     param (
        [Parameter(Mandatory)]$ShopName
@@ -221,7 +228,7 @@ function Get-ShopifyRestProductsAll {
 
     $Limit = 250
     $Products = @()
-    $Count = Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Products -Subresource Count | Select-Object -ExpandProperty count
+    $Count = Get-ShopifyRestProductCount @PSBoundParameters
     $Pages = [System.Math]::Ceiling($Count/$Limit)
 
     for ($Page = 1; $Page -le $Pages; $Page++) {
