@@ -347,6 +347,31 @@ function Find-ShopifyProduct {
     return $Products
 }
 
+function Remove-ShopifyProduct {
+    param (
+        [Parameter(Mandatory)]$GlobalId,
+        [Parameter(Mandatory)]$ShopName
+    )
+
+    $Base64EncodedId = $GlobalId | ConvertTo-Base64
+
+    $Mutation = @"
+    mutation productDelete {
+        productDelete(id:$Base64EncodedId) {
+          deletedProductId
+          shop {
+            id
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+"@
+    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+}
+
 function Invoke-ShopifyInventoryActivate {
     param (
         [Parameter(Mandatory)]$InventoryItemId,
