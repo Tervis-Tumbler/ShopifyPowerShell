@@ -302,9 +302,10 @@ function Remove-ShopifyRestProduct {
 
 function Find-ShopifyProduct {
     param (
-        [Parameter(Mandatory)]$ShopName,
-        [Parameter(Mandatory)]$Title
-        )
+        [Parameter(Mandatory,ParameterSetName = "SKU")]$SKU,
+        [Parameter(Mandatory,ParameterSetName = "Title")]$Title,
+        [Parameter(Mandatory)]$ShopName
+    )
         
     $Products = @()
     $CurrentCursor = ""
@@ -312,7 +313,13 @@ function Find-ShopifyProduct {
     do {
         $QraphQLQuery = @"
             {
-                products(first: 50, $(if ($CurrentCursor) {"after:`"$CurrentCursor`","} ) query:`"title:*$Title*`") {
+                products(first: 50, 
+                    $(if ($CurrentCursor) {"after:`"$CurrentCursor`","} ) 
+                    $(
+                        if ($Title) {"query:`"title:*$Title*`""}
+                        elseif ($SKU) {"query:`"sku:$SKU`""}
+                    )
+                ) {
                     edges {
                         node {
                             title
@@ -328,6 +335,7 @@ function Find-ShopifyProduct {
                                             id
                                         }
                                         sku
+                                        price
                                     }
                                 }
                             }
@@ -356,8 +364,8 @@ function Remove-ShopifyProduct {
     $Base64EncodedId = $GlobalId | ConvertTo-Base64
 
     $Mutation = @"
-    mutation productDelete {
-        productDelete(id:$Base64EncodedId) {
+    mutation {
+        productDelete(input: { id: "$Base64EncodedId" } ) {
           deletedProductId
           shop {
             id
