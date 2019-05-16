@@ -300,6 +300,52 @@ function Remove-ShopifyRestProduct {
     }
 }
 
+function New-ShopifyProduct {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$Title,
+        [Parameter(Mandatory)]$Description,
+        [Parameter(Mandatory)]$Handle,
+        [Parameter(Mandatory)]$Barcode,
+        [Parameter(Mandatory)]$Price,
+        [Parameter(Mandatory)]$Sku,
+        $ImageURL
+        )
+
+    $Mutation = @"
+        mutation {
+            productCreate(
+                input: {
+                    title: "$Title",
+                    descriptionHtml: "$Description",
+                    handle: "$Handle",
+                    variants: [
+                        {
+                            barcode: "$Barcode",
+                            price: "$Price",
+                            sku: "$Sku",
+                        }
+                    ],
+                    images: [
+                        {
+                            src: "$ImageURL"
+                        }
+                    ]
+                }
+            ) {
+                product {
+                    id
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }    
+"@
+    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+}
+
 function Find-ShopifyProduct {
     param (
         [Parameter(Mandatory,ParameterSetName = "SKU")]$SKU,
