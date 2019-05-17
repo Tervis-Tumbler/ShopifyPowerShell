@@ -304,12 +304,16 @@ function New-ShopifyProduct {
     param (
         [Parameter(Mandatory)]$ShopName,
         [Parameter(Mandatory)]$Title,
-        [Parameter(Mandatory)]$Description,
-        [Parameter(Mandatory)]$Handle,
-        [Parameter(Mandatory)]$Barcode,
-        [Parameter(Mandatory)]$Price,
-        [Parameter(Mandatory)]$Sku,
-        $ImageURL
+        $Description,
+        $Handle,
+        $Barcode,
+        $Price = 0,
+        $Sku,
+        [ValidateSet("CONTINUE","DENY")]$InventoryPolicy = "DENY",
+        [ValidateSet("true","false")]$Tracked,
+        [ValidateSet("FULFILLMENT_SERVICE","NOT_MANAGED","SHOPIFY")]$InventoryManagement,
+        $ImageURL,
+        $Vendor
         )
 
     $Mutation = @"
@@ -324,17 +328,33 @@ function New-ShopifyProduct {
                             barcode: "$Barcode",
                             price: "$Price",
                             sku: "$Sku",
+                            inventoryPolicy: $InventoryPolicy,
+                            inventoryItem: {
+                                tracked: $Tracked
+                            }
+                            inventoryManagement: $InventoryManagement
                         }
                     ],
                     images: [
                         {
                             src: "$ImageURL"
                         }
-                    ]
+                    ],
+                    vendor: "$Vendor"
                 }
             ) {
                 product {
                     id
+                    updatedAt
+                    variants (first: 1) {
+                        edges {
+                            node {
+                                inventoryItem {
+                                    id
+                                }
+                            }
+                        }
+                    } 
                 }
                 userErrors {
                     field
@@ -343,7 +363,12 @@ function New-ShopifyProduct {
             }
         }    
 "@
-    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    if ($Response.data.productCreate.userErrors) {
+        throw $Response.data.productCreate.userErrors[0].message
+    } else {
+        return $Response.data.productCreate.product
+    }
 }
 
 function Find-ShopifyProduct {
@@ -401,6 +426,79 @@ function Find-ShopifyProduct {
     return $Products
 }
 
+function Update-ShopifyProduct {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$Id,
+        [Parameter(Mandatory)]$Title,
+        $Description,
+        $Handle,
+        $Barcode,
+        $Price,
+        $Sku,
+        [ValidateSet("CONTINUE","DENY")]$InventoryPolicy,
+        [ValidateSet("true","false")]$Tracked,
+        [ValidateSet("FULFILLMENT_SERVICE","NOT_MANAGED","SHOPIFY")]$InventoryManagement,
+        $ImageURL,
+        $Vendor
+        )
+
+    $Mutation = @"
+        mutation {
+            productUpdate(
+                input: {
+                    id: "$Id"
+                    title: "$Title",
+                    descriptionHtml: "$Description",
+                    handle: "$Handle",
+                    variants: [
+                        {
+                            barcode: "$Barcode",
+                            price: "$Price",
+                            sku: "$Sku",
+                            inventoryPolicy: $InventoryPolicy,
+                            inventoryItem: {
+                                tracked: $Tracked
+                            }
+                            inventoryManagement: $InventoryManagement
+                        }
+                    ],
+                    images: [
+                        {
+                            src: "$ImageURL"
+                        }
+                    ],
+                    vendor: "$Vendor"
+                }
+            ) {
+                product {
+                    id
+                    updatedAt
+                    variants (first: 1) {
+                        edges {
+                            node {
+                                inventoryItem {
+                                    id
+                                }
+                            }
+                        }
+                    } 
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }    
+"@
+    $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    if ($Response.data.productUpdate.userErrors) {
+        throw $Response.data.productUpdate.userErrors[0].message
+    } else {
+        return $Response.data.productUpdate.product
+    }
+}
+
 function Remove-ShopifyProduct {
     param (
         [Parameter(Mandatory)]$GlobalId,
@@ -450,7 +548,12 @@ function Invoke-ShopifyInventoryActivate {
         }
 "@
     
-    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    if ($Response.data.inventoryActivate.userErrors) {
+        throw $Response.data.inventoryActivate.userErrors[0].message
+    } else {
+        return $Response.data.inventoryActivate.inventoryLevel.id
+    }
 }
 
 function Set-ShopifyProductVariantInventoryPolicy {
@@ -495,4 +598,93 @@ function New-ShopifyImageByURL {
     } | ConvertTo-Json -Compress
 
     Invoke-ShopifyRestAPIFunction -HttpMethod POST -ShopName $ShopName -Resource Products -Subresource "$ProductId/images" -Body $Body
+}
+
+function Get-ShopifyPublications {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        $ResultSize = 5
+    )
+    $Query = @"
+        query {
+            publications(first: $ResultSize) {
+                edges {
+                    node {
+                        id
+                        name
+                    }
+                }
+            }
+        }
+"@
+    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query
+}
+
+function Set-ShopifyInventoryItemTrackedAttribute {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$InventoryItemId,
+        [Parameter(Mandatory)]
+        [ValidateSet("true","false")]$TrackedValue
+    )
+    
+    $EncodedItemId = "gid://shopify/InventoryItem/$InventoryItemId" | ConvertTo-Base64
+    $Mutation = @"
+        mutation {
+            inventoryItemUpdate(
+                id: "$($EncodedItemId)"
+                input: {
+                    tracked: $TrackedValue
+                }
+            ) {
+                inventoryItem {
+                    id
+                    tracked
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+"@
+    $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    if ($Response.data.inventoryItemUpdate.userErrors) {
+        throw $Response.data.inventoryItemUpdate.userErrors[0].message
+    } else {
+        return $Response.data.inventoryItemUpdate.inventoryItem
+    }
+}
+
+function Get-ShopifyInventoryItemLocations {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$InventoryItemId
+    )
+    do {
+        $Query = @"
+            query {
+                inventoryItem(id: "gid://shopify/InventoryItem/$InventoryItemId") {
+                        inventoryLevels(first: 5) {
+                            edges {
+                                node {
+                                    location {
+                                        id
+                                        name
+                                    }
+                                }
+                                cursor
+                            }
+                            pageInfo {
+                                hasNextPage
+                            }
+                        }
+                    }
+                }   
+"@
+        $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query
+        $CurrentCursor = $Response.data.inventoryItem.inventoryLevels.edges | Select-Object -Last 1 -ExpandProperty cursor
+        $Locations += $Response.data.inventoryItem.inventoryLevels.edges.node | Select-Object -ExpandProperty location
+    } while ($Response.data.inventoryItem.inventoryLevels.pageInfo.hasNextPage)
+    return $Locations
 }
