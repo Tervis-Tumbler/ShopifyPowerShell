@@ -351,6 +351,7 @@ function New-ShopifyProduct {
                             node {
                                 inventoryItem {
                                     id
+                                    sku
                                 }
                             }
                         }
@@ -384,7 +385,7 @@ function Find-ShopifyProduct {
     do {
         $QraphQLQuery = @"
             {
-                products(first: 50, 
+                products(first: 5, 
                     $(if ($CurrentCursor) {"after:`"$CurrentCursor`","} ) 
                     $(
                         if ($Title) {"query:`"title:*$Title*`""}
@@ -479,6 +480,7 @@ function Update-ShopifyProduct {
                             node {
                                 inventoryItem {
                                     id
+                                    sku
                                 }
                             }
                         }
@@ -511,9 +513,6 @@ function Remove-ShopifyProduct {
     mutation {
         productDelete(input: { id: "$Base64EncodedId" } ) {
           deletedProductId
-          shop {
-            id
-          }
           userErrors {
             field
             message
@@ -521,7 +520,13 @@ function Remove-ShopifyProduct {
         }
       }
 "@
-    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    # Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+    if ($Response.data.productDelete.userErrors) {
+        throw $Response.data.productDelete.userErrors[0].message
+    } else {
+        return $Response.data.productDelete.deletedProductId
+    }
 }
 
 function Invoke-ShopifyInventoryActivate {
