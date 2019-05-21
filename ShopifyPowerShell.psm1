@@ -255,13 +255,14 @@ function Set-ShopifyRestProductChannel {
         [Parameter(Mandatory)]$ShopName,
         [Parameter(Mandatory)]$Products,
         [Parameter(Mandatory)]
-        [ValidateSet("web","global")]$Channel
+        [ValidateSet("web","global")]$Channel,
+        [switch]$ShowProgress
     )
     $Total = $Products.count
     $i = 0
 
     foreach ($Product in $Products) {
-        if ($Total) {
+        if ($Total -and $ShowProgress) {
             Write-Progress -Activity "Updating product channel" -CurrentOperation $Product.title -PercentComplete ($i * 100 / $Total) -Status "$i of $Total"
         }
         $Body = [PSCustomObject]@{
@@ -274,7 +275,7 @@ function Set-ShopifyRestProductChannel {
         Invoke-ShopifyRestAPIFunction -HttpMethod PUT -ShopName $ShopName -Resource Products -Subresource $Product.id -Body $Body
         $i++
     }
-    if ($Total) {
+    if ($Total -and $ShowProgress) {
         Write-Progress -Activity "Updating product channel" -Completed
     }
 }
