@@ -87,7 +87,7 @@ function Invoke-ShopifyRestAPIFunction{
                 Write-Error $_
             }
         }
-    } while ($StatusCode -notin 429,503)
+    } while ($StatusCode -in 429,503)
 }
 
 function Invoke-ShopifyAPIFunction{
