@@ -80,11 +80,14 @@ function Invoke-ShopifyRestAPIFunction{
                 $RetryDelay = [int]$_.Exception.Response.Headers["Retry-After"]
                 Write-Warning -Message "Throttling for $RetryDelay seconds"
                 Start-Sleep -Seconds $RetryDelay 
+            } elseif ($StatusCode -eq 503) {
+                Write-Warning -Message "Received 503: Service Unavailabe. Retrying in 1 second"
+                Start-Sleep -Seconds 1
             } else {
                 Write-Error $_
             }
         }
-    } while ($StatusCode -eq 429)
+    } while ($StatusCode -notin 429,503)
 }
 
 function Invoke-ShopifyAPIFunction{
