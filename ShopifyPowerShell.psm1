@@ -84,7 +84,7 @@ function Invoke-ShopifyRestAPIFunction{
                 Write-Warning -Message "Received 503: Service Unavailabe. Retrying in 1 second"
                 Start-Sleep -Seconds 1
             } else {
-                Write-Error $_
+                throw $_
             }
         }
     } while ($StatusCode -in 429,503)
@@ -104,12 +104,16 @@ function Invoke-ShopifyAPIFunction{
     }
 
     do {
-        $Response = Invoke-RestMethod -Method POST -Headers $Headers -Uri $URI -Body $Body
-        $Throttled = $Response.errors -and ($Response.errors[0].message -eq "Throttled")
-        if ($Throttled) {
-            $Response | Invoke-ShopifyAPIThrottle    
-        } else {
-            return $Response
+        try {
+            $Response = Invoke-RestMethod -Method POST -Headers $Headers -Uri $URI -Body $Body
+            $Throttled = $Response.errors -and ($Response.errors[0].message -eq "Throttled")
+            if ($Throttled) {
+                $Response | Invoke-ShopifyAPIThrottle    
+            } else {
+                return $Response
+            }
+        } catch {
+            throw $_
         }
     } while ($Throttled)
 }
