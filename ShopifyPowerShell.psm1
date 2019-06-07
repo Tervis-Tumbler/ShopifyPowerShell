@@ -704,13 +704,25 @@ function Get-ShopifyInventoryItemLocations {
 
 function Get-ShopifyOrders {
     param (
-        [Parameter(Mandatory)]$ShopName
+        [Parameter(Mandatory)]$ShopName,
+        $StartDate = (Get-Date).AddDays(-1), 
+        $EndDate = (Get-Date)
     )
+
+    try {
+        $UTCStartDate = Get-Date -Date (Get-Date -Date $StartDate).ToUniversalTime() -Format o 
+        $UTCEndDate = Get-Date -Date (Get-Date -Date $EndDate).ToUniversalTime() -Format o
+    } catch {
+        throw "Invalid date specified."
+    }
+
     $Query = {
-        param ($OrderCursor, $LineItemCursor)
+        param ($OrderCursor, $LineItemCursor, $UTCStartDate, $UTCEndDate)
         @"
         query {
-            orders(first: 1 $(if ($OrderCursor) {", after:`"$OrderCursor`""} )) {
+            orders(first: 1, query:"created_at:>=$UTCStartDate created_at:<=$UTCEndDate"
+                $(if ($OrderCursor) {", after:`"$OrderCursor`""} )
+            ) {
                 edges {
                     node {
                         id
@@ -751,7 +763,8 @@ function Get-ShopifyOrders {
     do {
         try {
             $Retry = $false
-            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor)
+            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor, $UTCStartDate, $UTCEndDate)
+            if (-not $Response.data.orders.edges) {break}
             $CurrentOrder = $Response.data.orders.edges[0].node
     
             $NextOrderCursor = $Response.data.orders.edges[0].cursor
@@ -761,7 +774,7 @@ function Get-ShopifyOrders {
     
             while ($LineItemHasNextPage) {
                 try {
-                    $LineItemResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor)
+                    $LineItemResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor, $UTCStartDate, $UTCEndDate)
                     $CurrentOrder.lineItems.edges += $LineItemResponse.data.orders.edges[0].node.lineItems.edges[0]
                     $LineItemCursor = $LineItemResponse.data.orders.edges[0].node.lineItems.edges[0].cursor
                     $LineItemHasNextPage = $LineItemResponse.data.orders.edges[0].node.lineItems.pageInfo.hasNextPage
