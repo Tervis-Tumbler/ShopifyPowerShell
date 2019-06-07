@@ -701,3 +701,85 @@ function Get-ShopifyInventoryItemLocations {
     } while ($Response.data.inventoryItem.inventoryLevels.pageInfo.hasNextPage)
     return $Locations
 }
+
+function Get-ShopifyOrders {
+    param (
+        [Parameter(Mandatory)]$ShopName
+    )
+    $Query = {
+        param ($OrderCursor, $LineItemCursor)
+        @"
+        query {
+            orders(first: 1 $(if ($OrderCursor) {", after:`"$OrderCursor`""} )) {
+                edges {
+                    node {
+                        id
+                        createdAt
+                        physicalLocation {
+                            id
+                            name
+                        }
+                        lineItems(first: 1 $(if ($LineItemCursor) {", after:`"$LineItemCursor`""} )) {
+                            edges {
+                                node {
+                                    name
+                                    sku
+                                    quantity
+                                    originalUnitPriceSet {
+                                        shopMoney {
+                                            amount
+                                        }
+                                    }
+                                }
+                                cursor
+                            }
+                            pageInfo {
+                                hasNextPage
+                            }
+                        }
+                    }
+                    cursor
+                }
+                pageInfo {
+                    hasNextPage
+                }
+            }
+        }
+"@
+    }
+    $Orders = @()
+    do {
+        try {
+            $Retry = $false
+            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor)
+            $CurrentOrder = $Response.data.orders.edges[0].node
+    
+            $NextOrderCursor = $Response.data.orders.edges[0].cursor
+            $LineItemCursor = $Response.data.orders.edges[0].node.lineItems.edges[0].cursor
+            $LineItemHasNextPage = $Response.data.orders.edges[0].node.lineItems.pageInfo.hasNextPage
+            $OrderHasNextPage = $Response.data.orders.pageInfo.hasNextPage
+    
+            while ($LineItemHasNextPage) {
+                try {
+                    $LineItemResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor)
+                    $CurrentOrder.lineItems.edges += $LineItemResponse.data.orders.edges[0].node.lineItems.edges[0]
+                    $LineItemCursor = $LineItemResponse.data.orders.edges[0].node.lineItems.edges[0].cursor
+                    $LineItemHasNextPage = $LineItemResponse.data.orders.edges[0].node.lineItems.pageInfo.hasNextPage
+                } catch {
+                    Write-Warning "Retrying line item fetch"
+                    Start-Sleep -Seconds 5
+                }
+            }
+            
+            $Orders += $CurrentOrder
+            $CurrentOrderCursor = $NextOrderCursor
+            $LineItemCursor = ""
+        } catch {
+            Write-Warning "Retrying order fetch"
+            $Retry = $true
+            Start-Sleep -Seconds 5
+        }
+    } while ($OrderHasNextPage -or $Retry)
+    
+    return $Orders
+}
