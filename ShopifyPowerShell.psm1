@@ -728,8 +728,7 @@ function Get-ShopifyOrders {
                         id
                         createdAt
                         physicalLocation {
-                            id
-                            name
+                            city
                         }
                         lineItems(first: 1 $(if ($LineItemCursor) {", after:`"$LineItemCursor`""} )) {
                             edges {
