@@ -728,7 +728,9 @@ function Get-ShopifyOrders {
                         id
                         createdAt
                         physicalLocation {
-                            city
+                            address {
+                                city
+                            }
                         }
                         lineItems(first: 1 $(if ($LineItemCursor) {", after:`"$LineItemCursor`""} )) {
                             edges {
@@ -794,4 +796,12 @@ function Get-ShopifyOrders {
     } while ($OrderHasNextPage -or $Retry)
     
     return $Orders
+}
+
+function Get-ShopifyIdFromShopifyGid {
+    param (
+        [Parameter(Mandatory,ValueFromPipeline)]$ShopifyGid
+    )
+
+    process { $ShopifyGid -split "/" | Select-Object -Last 1 }
 }
