@@ -806,3 +806,43 @@ function Get-ShopifyIdFromShopifyGid {
 
     process { $ShopifyGid -split "/" | Select-Object -Last 1 }
 }
+
+function Set-ShopifyOrderTag {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory,ValueFromPipeline)]$Order,
+        $AddTag,
+        $RemoveTag
+    )
+    process {
+        [array]$Tags = $Order.Tags
+        $Tags += $AddTag
+        $Tags = $Tags | Where-Object {$_ -notin $RemoveTag}
+        $Base64EncodedGID = $Order.id | ConvertTo-Base64
+        $FormattedTags = $Tags | ConvertTo-Json
+
+        $Mutation = @"
+            mutation {
+                orderUpdate(input: {
+                    id: "$Base64EncodedGID"
+                    tags: $FormattedTags
+                }) {
+                    order {
+                        id
+                        tags
+                    }
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+"@
+        $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+        if ($Response.data.orderUpdate.userErrors) {
+            throw $Response.data.orderUpdate.userErrors[0].message
+        } else {
+            return $Response.data.orderUpdate.order
+        }
+    }
+}
