@@ -68,7 +68,7 @@ function Invoke-ShopifyRestAPIFunction{
     if ($Endpoints) {
         $URI += $Endpoints | Convert-HashtableToQueryString
     }
-    
+
     do {
         try {
             $Response = Invoke-WebRequest -Uri $URI -Method $HttpMethod -Body $Body -Headers $Headers -ErrorAction Stop
@@ -726,6 +726,7 @@ function Get-ShopifyOrders {
                 edges {
                     node {
                         id
+                        legacyResourceId
                         createdAt
                         tags
                         physicalLocation {
@@ -844,5 +845,16 @@ function Set-ShopifyOrderTag {
         } else {
             return $Response.data.orderUpdate.order
         }
+    }
+}
+
+function Get-ShopifyRestOrderTransactionDetail {
+    param (
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]$LegacyResourceId,
+        [Parameter(Mandatory)]$ShopName
+    )
+    process {
+        Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Orders -Subresource $LegacyResourceId/Transactions |
+            Select-Object -ExpandProperty Transactions
     }
 }
