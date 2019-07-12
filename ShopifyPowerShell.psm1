@@ -745,6 +745,13 @@ function Get-ShopifyOrders {
                                             amount
                                         }
                                     }
+                                    taxLines {
+                                        priceSet {
+                                            shopMoney {
+                                                amount
+                                            }
+                                        }
+                                    }
                                 }
                                 cursor
                             }
