@@ -705,22 +705,14 @@ function Get-ShopifyInventoryItemLocations {
 function Get-ShopifyOrders {
     param (
         [Parameter(Mandatory)]$ShopName,
-        $StartDate = (Get-Date).AddDays(-1), 
-        $EndDate = (Get-Date)
+        $QueryString
     )
 
-    try {
-        $UTCStartDate = Get-Date -Date (Get-Date -Date $StartDate).ToUniversalTime() -Format o 
-        $UTCEndDate = Get-Date -Date (Get-Date -Date $EndDate).ToUniversalTime() -Format o
-    } catch {
-        throw "Invalid date specified."
-    }
-
     $Query = {
-        param ($OrderCursor, $LineItemCursor, $UTCStartDate, $UTCEndDate)
+        param ($OrderCursor, $LineItemCursor, $QueryString)
         @"
         query {
-            orders(first: 1, query:"created_at:>=$UTCStartDate created_at:<=$UTCEndDate"
+            orders(first: 1, query:"$QueryString"
                 $(if ($OrderCursor) {", after:`"$OrderCursor`""} )
             ) {
                 edges {
@@ -773,7 +765,7 @@ function Get-ShopifyOrders {
     do {
         try {
             $Retry = $false
-            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor, $UTCStartDate, $UTCEndDate)
+            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor, $QueryString)
             if (-not $Response.data.orders.edges) {break}
             $CurrentOrder = $Response.data.orders.edges[0].node
     
@@ -784,7 +776,7 @@ function Get-ShopifyOrders {
     
             while ($LineItemHasNextPage) {
                 try {
-                    $LineItemResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor, $UTCStartDate, $UTCEndDate)
+                    $LineItemResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor, $QueryString)
                     $CurrentOrder.lineItems.edges += $LineItemResponse.data.orders.edges[0].node.lineItems.edges[0]
                     $LineItemCursor = $LineItemResponse.data.orders.edges[0].node.lineItems.edges[0].cursor
                     $LineItemHasNextPage = $LineItemResponse.data.orders.edges[0].node.lineItems.pageInfo.hasNextPage
@@ -805,6 +797,25 @@ function Get-ShopifyOrders {
     } while ($OrderHasNextPage -or $Retry)
     
     return $Orders
+}
+
+function Get-ShopifyOrdersInDateRange {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        $StartDate = (Get-Date).AddDays(-1), 
+        $EndDate = (Get-Date)
+    )
+
+    try {
+        $UTCStartDate = Get-Date -Date (Get-Date -Date $StartDate).ToUniversalTime() -Format o 
+        $UTCEndDate = Get-Date -Date (Get-Date -Date $EndDate).ToUniversalTime() -Format o
+    } catch {
+        throw "Invalid date specified."
+    }
+
+    $QueryString = "created_at:>=$UTCStartDate created_at:<=$UTCEndDate"
+
+    Get-ShopifyOrders -ShopName $ShopName -QueryString $QueryString
 }
 
 function Get-ShopifyIdFromShopifyGid {
