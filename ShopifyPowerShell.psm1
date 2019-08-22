@@ -71,7 +71,7 @@ function Invoke-ShopifyRestAPIFunction{
 
     do {
         try {
-            $Response = Invoke-WebRequest -Uri $URI -Method $HttpMethod -Body $Body -Headers $Headers -ErrorAction Stop
+            $Response = Invoke-WebRequest -UseBasicParsing -Uri $URI -Method $HttpMethod -Body $Body -Headers $Headers -ErrorAction Stop
             $StatusCode = $Response.StatusCode
             return $Response.Content | ConvertFrom-Json
         } catch [System.Net.WebException] {
