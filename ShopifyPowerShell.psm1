@@ -49,7 +49,7 @@ function Invoke-ShopifyRestAPIFunction{
         $Body,
         [hashtable]$Endpoints
     )
-    
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $Credential = Get-ShopifyCredential
     $AuthToken = "$($Credential.UserName):$($Credential.GetNetworkCredential().Password)" | ConvertTo-Base64
     $Headers = @{
@@ -96,6 +96,7 @@ function Invoke-ShopifyAPIFunction{
         [parameter(Mandatory)]$ShopName,
         [parameter(Mandatory)]$Body
     )
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $Credential = Get-ShopifyCredential
     $URI = "https://$ShopName.myshopify.com/admin/api/graphql.json"
     $Headers = @{
