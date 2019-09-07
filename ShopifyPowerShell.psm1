@@ -877,3 +877,75 @@ function Get-ShopifyRestOrderTransactionDetail {
             Select-Object -ExpandProperty Transactions
     }
 }
+
+function Update-ShopifyInventoryLevelAtLocation {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]$InventoryItemGid,
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]$LocationGid,
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]$Delta
+    )
+    process {
+
+    }
+}
+
+function Get-ShopifyInventoryLevelAtLocation {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]$SKU,
+        [Parameter(Mandatory,ValueFromPipelineByPropertyName)]$LocationId
+    )
+    
+    $Query = @"
+        {
+            inventoryItems (first: 1, query:"sku:$SKU") {
+                edges {
+                    node {
+                        id
+                        inventoryLevel (locationId: "gid://shopify/Location/$LocationId") {
+                            id
+                            location {
+                                id
+                                name
+                            }
+                            available
+                        }
+                    }
+                }
+            }
+        }
+"@
+    $Result = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query
+    $Result.data.inventoryItems.edges.node
+}
+
+function Get-ShopifyLocation {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$LocationName
+    )
+
+    $Query = @"
+        {
+            locations (first: 1, query:"city:$LocationName") {
+                edges {
+                    node {
+                        id
+                        name
+                        address {
+                            address1
+                            address2
+                            city
+                            provinceCode
+                            zip
+                        }
+                        isActive                    
+                    }
+                }
+            }
+        }
+"@
+    $Result = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query
+    $Result.data.locations.edges.node
+}
