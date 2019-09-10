@@ -675,11 +675,15 @@ function Get-ShopifyInventoryItemLocations {
         [Parameter(Mandatory)]$ShopName,
         [Parameter(Mandatory)]$InventoryItemId
     )
+    $Locations = @()
     do {
         $Query = @"
             query {
                 inventoryItem(id: "gid://shopify/InventoryItem/$InventoryItemId") {
-                        inventoryLevels(first: 5) {
+                        inventoryLevels(
+                                first: 5
+                                $(if ($CurrentCursor) {", after:`"$CurrentCursor`""} )
+                            ) {
                             edges {
                                 node {
                                     location {
@@ -698,7 +702,7 @@ function Get-ShopifyInventoryItemLocations {
 "@
         $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query
         $CurrentCursor = $Response.data.inventoryItem.inventoryLevels.edges | Select-Object -Last 1 -ExpandProperty cursor
-        $Locations += $Response.data.inventoryItem.inventoryLevels.edges.node | Select-Object -ExpandProperty location
+        $Locations += $Response.data.inventoryItem.inventoryLevels.edges.node.location
     } while ($Response.data.inventoryItem.inventoryLevels.pageInfo.hasNextPage)
     return $Locations
 }
@@ -926,26 +930,43 @@ function Get-ShopifyLocation {
         [Parameter(Mandatory)]$LocationName
     )
 
-    $Query = @"
-        {
-            locations (first: 1, query:"city:$LocationName") {
-                edges {
-                    node {
-                        id
-                        name
-                        address {
-                            address1
-                            address2
-                            city
-                            provinceCode
-                            zip
+    $Query = {
+        param ($Name,$Cursor)
+        @"
+            {
+                locations (
+                    first: 10, query:"name:$Name"
+                    $(
+                        if ($Cursor) {", after:`"$Cursor`""}
+                    )
+                ) {
+                    edges {
+                        node {
+                            id
+                            name
+                            address {
+                                address1
+                                address2
+                                city
+                                provinceCode
+                                zip
+                            }
+                            isActive                    
                         }
-                        isActive                    
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
                     }
                 }
             }
-        }
 "@
-    $Result = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query
-    $Result.data.locations.edges.node
+    } 
+    $Result = @()
+    do {
+        $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($LocationName,$Cursor)
+        $Cursor = $Response.data.locations.edges.cursor | Select-Object -Last 1
+        $Result += $Response.data.locations.edges.node
+    } while ($Response.data.locations.pageInfo.hasNextPage)
+    return $Result   
 }
