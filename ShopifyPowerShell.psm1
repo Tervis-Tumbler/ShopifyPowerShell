@@ -83,11 +83,16 @@ function Invoke-ShopifyRestAPIFunction{
             } elseif ($StatusCode -eq 503) {
                 Write-Warning -Message "Received 503: Service Unavailabe. Retrying in 1 second"
                 Start-Sleep -Seconds 1
+            } elseif ($StatusCode -eq 504) {
+                Write-Warning -Message "Received 504: Gateway Timeout. Retrying in 1 second"
+                Start-Sleep -Seconds 1
             } else {
                 throw $_
             }
+        } catch {
+            throw $_
         }
-    } while ($StatusCode -in 429,503)
+    } while ($StatusCode -in 429,503,504)
 }
 
 function Invoke-ShopifyAPIFunction{
@@ -113,10 +118,22 @@ function Invoke-ShopifyAPIFunction{
             } else {
                 return $Response
             }
+        } catch [System.Net.WebException] {
+            $StatusCode = $_.Exception.Response.StatusCode
+            if ($StatusCode -eq 503) {
+                Write-Warning -Message "Received 503: Service Unavailabe. Retrying in 1 second"
+                Start-Sleep -Seconds 1
+            } elseif ($StatusCode -eq 504) {
+                Write-Warning -Message "Received 504: Gateway Timeout. Retrying in 1 second"
+                Start-Sleep -Seconds 1
+            }
+            else {
+                throw $_
+            }
         } catch {
             throw $_
         }
-    } while ($Throttled)
+    } while ($Throttled -or ($StatusCode -in 503,504))
 }
 
 function Invoke-ShopifyAPIThrottle {
