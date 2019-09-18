@@ -460,6 +460,7 @@ function Update-ShopifyProduct {
         [Parameter(Mandatory)]$Title,
         $Description,
         $Handle,
+        [Parameter(Mandatory)]$VariantGID,
         $Barcode,
         $Price,
         $Sku,
@@ -480,6 +481,7 @@ function Update-ShopifyProduct {
                     handle: "$Handle",
                     variants: [
                         {
+                            id: "$VariantGID"
                             barcode: "$Barcode",
                             price: "$Price",
                             sku: "$Sku",
