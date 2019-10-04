@@ -768,6 +768,10 @@ function Get-ShopifyOrders {
                                             }
                                         }
                                     }
+                                    customAttributes {
+                                        key
+                                        value
+                                    }
                                 }
                                 cursor
                             }
