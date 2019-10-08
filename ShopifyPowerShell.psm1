@@ -746,6 +746,7 @@ function Get-ShopifyOrders {
                         createdAt
                         tags
                         physicalLocation {
+                            name
                             address {
                                 city
                             }
