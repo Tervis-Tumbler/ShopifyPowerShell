@@ -996,3 +996,37 @@ function Get-ShopifyLocation {
     } while ($Response.data.locations.pageInfo.hasNextPage)
     return $Result   
 }
+
+function Get-ShopifyRefunds {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$OrderGID
+    )
+
+    $Query = @"
+    {
+        order(id:"gid://shopify/Order/1706566287441") {
+          refunds {
+            id
+            createdAt
+            refundLineItems (first:5) {
+              edges {
+                node {
+                            lineItem {
+      
+                  }
+                  quantity
+                  totalTaxSet
+                }
+                cursor
+              }
+              pageInfo {
+                hasNextPage
+              }
+            }
+          }
+        }
+      }
+"@
+
+}
