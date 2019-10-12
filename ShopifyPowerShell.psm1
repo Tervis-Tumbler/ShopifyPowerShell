@@ -584,6 +584,8 @@ function Invoke-ShopifyInventoryActivate {
     $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
     if ($Response.data.inventoryActivate.userErrors) {
         throw $Response.data.inventoryActivate.userErrors[0].message
+    } elseif ($Response.errors) {
+        throw $Response.errors.message
     } else {
         return $Response.data.inventoryActivate.inventoryLevel.id
     }
