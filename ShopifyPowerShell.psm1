@@ -764,6 +764,11 @@ function Get-ShopifyOrders {
                                             amount
                                         }
                                     }
+                                    discountedUnitPriceSet {
+                                        shopMoney {
+                                            amount
+                                        }
+                                    }
                                     taxLines {
                                         priceSet {
                                             shopMoney {
@@ -1022,6 +1027,11 @@ function Get-ShopifyRefunds {
                             node {
                                 lineItem {
                                     sku
+                                    originalUnitPriceSet {
+                                        shopMoney {
+                                            amount
+                                        }
+                                    }
                                     discountedUnitPriceSet {
                                         shopMoney {
                                             amount
