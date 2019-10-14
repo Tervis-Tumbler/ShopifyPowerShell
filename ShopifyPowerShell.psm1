@@ -1003,30 +1003,65 @@ function Get-ShopifyRefunds {
         [Parameter(Mandatory)]$OrderGID
     )
 
-    $Query = @"
-    {
-        order(id:"gid://shopify/Order/1706566287441") {
-          refunds {
-            id
-            createdAt
-            refundLineItems (first:5) {
-              edges {
-                node {
-                            lineItem {
-      
-                  }
-                  quantity
-                  totalTaxSet
+    $Query = {
+        param ($OrderGID,$Cursor)
+        @"
+        {
+            order(id:"$OrderGID") {
+                refunds {
+                    id
+                    createdAt
+                    refundLineItems (
+                        first: 1
+                        $(
+                            if ($Cursor) {", after:`"$Cursor`""}
+                        )
+    
+                    ) {
+                        edges {
+                            node {
+                                lineItem {
+                                    sku
+                                    discountedUnitPriceSet {
+                                        shopMoney {
+                                            amount
+                                        }
+                                    }
+                                }
+                                quantity
+                                totalTaxSet {
+                                    shopMoney {
+                                        amount
+                                    }
+                                }
+                            }
+                            cursor
+                        }
+                        pageInfo {
+                            hasNextPage
+                        }
+                    }
                 }
-                cursor
-              }
-              pageInfo {
-                hasNextPage
-              }
             }
-          }
         }
-      }
 "@
-
+    }    
+    $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($OrderGID)
+    $RefundIDs = $Response.data.order.refunds.id
+    $Result = @()
+    
+    foreach ($RefundID in $RefundIDs) {
+        $Refund = $Response.data.order.refunds | Where-Object id -eq $RefundID
+        $LineItems = @()
+        do {
+            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($OrderGID,$Cursor)
+            $Refund = $Response.data.order.refunds | Where-Object id -eq $RefundID
+            $Cursor = $Refund.refundLineItems.edges[0].cursor
+            $LineItems += $Refund.refundLineItems.edges[0]
+        } while ($Refund.refundLineItems.pageInfo.hasNextPage)
+        $Refund.refundLineItems.edges = $LineItems
+        $Result += $Refund
+    }
+    
+    return $Result
 }
