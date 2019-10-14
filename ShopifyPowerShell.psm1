@@ -1038,6 +1038,11 @@ function Get-ShopifyRefunds {
                                         }
                                     }
                                 }
+                                priceSet {
+                                    shopMoney {
+                                        amount
+                                    }
+                                }
                                 quantity
                                 totalTaxSet {
                                     shopMoney {
