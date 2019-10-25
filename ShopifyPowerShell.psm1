@@ -735,7 +735,7 @@ function Get-ShopifyOrders {
     )
 
     $Query = {
-        param ($OrderCursor, $LineItemCursor, $QueryString)
+        param ($QueryString, $OrderCursor, $LineItemCursor, $EventCursor)
         @"
         query {
             orders(first: 1, query:"$QueryString"
@@ -787,6 +787,18 @@ function Get-ShopifyOrders {
                                 hasNextPage
                             }
                         }
+                        events(first: 1 $(if ($EventCursor) {", after:`"$EventCursor`""} )) {
+                            edges {
+                                node {
+                                    id
+                                    message
+                                }
+                                cursor
+                            }
+                            pageInfo {
+                                hasNextPage
+                            }
+                        } 
                     }
                     cursor
                 }
@@ -801,18 +813,20 @@ function Get-ShopifyOrders {
     do {
         try {
             $Retry = $false
-            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor, $QueryString)
+            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($QueryString, $CurrentOrderCursor, $LineItemCursor, $EventCursor)
             if (-not $Response.data.orders.edges) {break}
             $CurrentOrder = $Response.data.orders.edges[0].node
     
             $NextOrderCursor = $Response.data.orders.edges[0].cursor
             $LineItemCursor = $Response.data.orders.edges[0].node.lineItems.edges[0].cursor
             $LineItemHasNextPage = $Response.data.orders.edges[0].node.lineItems.pageInfo.hasNextPage
+            $EventCursor = $Response.data.orders.edges[0].node.events.edges[0].cursor
+            $EventHasNextPage = $Response.data.orders.edges[0].node.events.pageInfo.hasNextPage
             $OrderHasNextPage = $Response.data.orders.pageInfo.hasNextPage
     
             while ($LineItemHasNextPage) {
                 try {
-                    $LineItemResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($CurrentOrderCursor, $LineItemCursor, $QueryString)
+                    $LineItemResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($QueryString, $CurrentOrderCursor, $LineItemCursor, $EventCursor)
                     $CurrentOrder.lineItems.edges += $LineItemResponse.data.orders.edges[0].node.lineItems.edges[0]
                     $LineItemCursor = $LineItemResponse.data.orders.edges[0].node.lineItems.edges[0].cursor
                     $LineItemHasNextPage = $LineItemResponse.data.orders.edges[0].node.lineItems.pageInfo.hasNextPage
@@ -821,10 +835,23 @@ function Get-ShopifyOrders {
                     Start-Sleep -Seconds 5
                 }
             }
+
+            while ($EventHasNextPage) {
+                try {
+                    $EventResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($QueryString, $CurrentOrderCursor, $LineItemCursor, $EventCursor)
+                    $CurrentOrder.events.edges += $EventResponse.data.orders.edges[0].node.events.edges[0]
+                    $EventCursor = $EventResponse.data.orders.edges[0].node.events.edges[0].cursor
+                    $EventHasNextPage = $EventResponse.data.orders.edges[0].node.events.pageInfo.hasNextPage
+                } catch {
+                    Write-Warning "Retrying event fetch"
+                    Start-Sleep -Seconds 5
+                }
+            }
             
             $Orders += $CurrentOrder
             $CurrentOrderCursor = $NextOrderCursor
             $LineItemCursor = ""
+            $EventCursor = ""
         } catch {
             Write-Warning "Retrying order fetch"
             $Retry = $true
@@ -1079,4 +1106,129 @@ function Get-ShopifyRefunds {
     }
     
     return $Result
+}
+
+function Get-ShopifyOrder {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$OrderId
+    )
+    $Query = {
+        param ($OrderId, $LineItemCursor, $EventCursor)
+        @"
+        query {
+            order(id:"gid://shopify/Order/$OrderId") {
+                id
+                legacyResourceId
+                createdAt
+                tags
+                physicalLocation {
+                    name
+                    address {
+                        city
+                    }
+                }
+                lineItems(first: 1 $(if ($LineItemCursor) {", after:`"$LineItemCursor`""} )) {
+                    edges {
+                        node {
+                            name
+                            sku
+                            quantity
+                            originalUnitPriceSet {
+                                shopMoney {
+                                    amount
+                                }
+                            }
+                            discountedUnitPriceSet {
+                                shopMoney {
+                                    amount
+                                }
+                            }
+                            taxLines {
+                                priceSet {
+                                    shopMoney {
+                                        amount
+                                    }
+                                }
+                            }
+                            customAttributes {
+                                key
+                                value
+                            }
+                        }
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
+                    }
+                }
+                events(first: 1 $(if ($EventCursor) {", after:`"$EventCursor`""} )) {
+                    edges {
+                        node {
+                            id
+                            message
+                        }
+                        cursor
+                    }
+                    pageInfo {
+                        hasNextPage
+                    }
+                } 
+            }
+        }
+"@
+    
+    }
+    # do {
+        try {
+            $Retry = $false
+            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($OrderId, $LineItemCursor, $EventCursor)
+            if (-not $Response.data.order) {break}
+            $CurrentOrder = $Response.data.order
+    
+            # $NextOrderCursor = $Response.data.orders.edges[0].cursor
+            $LineItemCursor = $Response.data.order.lineItems.edges[0].cursor
+            $LineItemHasNextPage = $Response.data.order.lineItems.pageInfo.hasNextPage
+            $EventCursor = $Response.data.order.events.edges[0].cursor
+            $EventHasNextPage = $Response.data.order.events.pageInfo.hasNextPage
+            # $OrderHasNextPage = $Response.data.orders.pageInfo.hasNextPage
+    
+            while ($LineItemHasNextPage) {
+                try {
+                    $LineItemResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($OrderId, $LineItemCursor, $EventCursor)
+                    $CurrentOrder.lineItems.edges += $LineItemResponse.data.order.lineItems.edges[0]
+                    $LineItemCursor = $LineItemResponse.data.order.lineItems.edges[0].cursor
+                    $LineItemHasNextPage = $LineItemResponse.data.order.lineItems.pageInfo.hasNextPage
+                } catch {
+                    Write-Warning "Retrying line item fetch"
+                    Start-Sleep -Seconds 5
+                }
+            }
+
+            while ($EventHasNextPage) {
+                try {
+                    $EventResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($OrderId, $LineItemCursor, $EventCursor)
+                    $CurrentOrder.events.edges += $EventResponse.data.order.events.edges[0]
+                    $EventCursor = $EventResponse.data.order.events.edges[0].cursor
+                    $EventHasNextPage = $EventResponse.data.order.events.pageInfo.hasNextPage
+                } catch {
+                    Write-Warning "Retrying event fetch"
+                    Start-Sleep -Seconds 5
+                }
+            }
+            
+            # $Orders += $CurrentOrder
+            # $CurrentOrderCursor = $NextOrderCursor
+            $LineItemCursor = ""
+            $EventCursor = ""
+        } catch {
+            # Write-Warning "Retrying order fetch"
+            # $Retry = $true
+            # Start-Sleep -Seconds 5
+            throw "Could not get Order #$OrderId"
+        }
+    # } while ($OrderHasNextPage -or $Retry)
+    
+    # return $Orders
+    return $CurrentOrder
 }
