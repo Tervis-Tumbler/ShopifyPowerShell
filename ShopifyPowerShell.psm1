@@ -759,6 +759,9 @@ function Get-ShopifyOrders {
                                     name
                                     sku
                                     quantity
+                                    variant {
+                                        barcode
+                                    }
                                     originalUnitPriceSet {
                                         shopMoney {
                                             amount
@@ -1083,6 +1086,13 @@ function Get-ShopifyRefunds {
                             hasNextPage
                         }
                     }
+                    transactions(first:2) {
+                        edges {
+                            node {
+                                gateway
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1134,6 +1144,9 @@ function Get-ShopifyOrder {
                             name
                             sku
                             quantity
+                            variant {
+                                barcode
+                            }
                             originalUnitPriceSet {
                                 shopMoney {
                                     amount
