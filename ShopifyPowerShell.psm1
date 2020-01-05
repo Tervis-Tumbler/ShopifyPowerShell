@@ -747,6 +747,20 @@ function Get-ShopifyOrders {
                         legacyResourceId
                         createdAt
                         tags
+                        customer {
+                            displayName
+                            firstName
+                            lastName
+                            defaultAddress {
+                                address1
+                                address2
+                                city
+                                province
+                                zip
+                                name
+                                countryCodeV2
+                            }
+                        }
                         physicalLocation {
                             name
                             address {
@@ -1132,6 +1146,20 @@ function Get-ShopifyOrder {
                 legacyResourceId
                 createdAt
                 tags
+                customer {
+                    displayName
+                    firstName
+                    lastName
+                    defaultAddress {
+                        address1
+                        address2
+                        city
+                        province
+                        zip
+                        name
+                        countryCodeV2
+                    }
+                }
                 physicalLocation {
                     name
                     address {
