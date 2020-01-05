@@ -953,7 +953,9 @@ function Get-ShopifyRestOrderTransactionDetail {
     )
     process {
         Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Orders -Subresource $LegacyResourceId/Transactions |
-            Select-Object -ExpandProperty Transactions
+            Select-Object -ExpandProperty Transactions |
+            Where-Object kind -eq "sale" |
+            Where-Object gateway -NE "exchange-credit"
     }
 }
 
