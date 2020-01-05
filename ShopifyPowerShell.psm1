@@ -814,9 +814,9 @@ function Get-ShopifyOrders {
     }
     $Orders = @()
     do {
+        $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($QueryString, $CurrentOrderCursor, $LineItemCursor, $EventCursor)
         try {
             $Retry = $false
-            $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($QueryString, $CurrentOrderCursor, $LineItemCursor, $EventCursor)
             if (-not $Response.data.orders.edges) {break}
             $CurrentOrder = $Response.data.orders.edges[0].node
     
