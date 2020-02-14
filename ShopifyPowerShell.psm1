@@ -747,6 +747,10 @@ function Get-ShopifyOrders {
                         legacyResourceId
                         createdAt
                         tags
+                        customAttributes {
+                            key
+                            value
+                        }
                         customer {
                             displayName
                             firstName
@@ -1148,6 +1152,10 @@ function Get-ShopifyOrder {
                 legacyResourceId
                 createdAt
                 tags
+                customAttributes {
+                    key
+                    value
+                }
                 customer {
                     displayName
                     firstName
