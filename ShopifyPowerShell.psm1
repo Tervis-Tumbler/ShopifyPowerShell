@@ -153,31 +153,6 @@ function Invoke-ShopifyAPIThrottle {
     }
 }
 
-function Invoke-ShopifyGraphQLTest{
-    param (
-        [Parameter(Mandatory)]$ShopName
-    )
-    $Body = @"
-    {
-        shop {
-          products(first: 250) {
-            edges {
-              node {
-                id
-                handle
-              }
-            }
-            pageInfo {
-              hasNextPage
-            }
-          }
-        }
-      }
-"@
-
-    Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Body
-}
-
 function Get-ShopifyRestInventoryItems{
     [cmdletbinding()]
     param(
