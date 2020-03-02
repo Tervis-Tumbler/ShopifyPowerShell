@@ -47,7 +47,8 @@ function Invoke-ShopifyRestAPIFunction{
         [Parameter(Mandatory)]$Resource,
         $Subresource,
         $Body,
-        [hashtable]$Endpoints
+        [hashtable]$Endpoints,
+        $APIVersion = "2020-04"
     )
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $Credential = Get-ShopifyCredential
@@ -57,7 +58,7 @@ function Invoke-ShopifyRestAPIFunction{
         "Content-Type" = "application/json"
     }
 
-    $URIRoot = "https://$ShopName.myshopify.com/admin/$($Resource.toLower())"
+    $URIRoot = "https://$ShopName.myshopify.com/admin/api/$APIVersion/$($Resource.toLower())"
 
     if ($Subresource){
         $URI = $URIRoot + ("/$Subresource").ToLower() + ".json"
@@ -99,11 +100,12 @@ function Invoke-ShopifyAPIFunction{
     [CmdletBinding()]
     param(
         [parameter(Mandatory)]$ShopName,
-        [parameter(Mandatory)]$Body
+        [parameter(Mandatory)]$Body,
+        $APIVersion = "2020-04"
     )
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $Credential = Get-ShopifyCredential
-    $URI = "https://$ShopName.myshopify.com/admin/api/graphql.json"
+    $URI = "https://$ShopName.myshopify.com/admin/api/$APIVersion/graphql.json"
     $Headers = @{
         "X-Shopify-Access-Token" = "$($Credential.GetNetworkCredential().Password)"
         "Content-Type" = "application/graphql"
