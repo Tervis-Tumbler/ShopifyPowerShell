@@ -391,7 +391,7 @@ function Find-ShopifyProduct {
                 products(first: 5, 
                     $(if ($CurrentCursor) {"after:`"$CurrentCursor`","} ) 
                     $(
-                        if ($Title) {"query:`"title:*$Title*`""}
+                        if ($Title) {"query:`"'*$Title*'`""}
                         elseif ($SKU) {"query:`"sku:$SKU`""}
                     )
                 ) {
