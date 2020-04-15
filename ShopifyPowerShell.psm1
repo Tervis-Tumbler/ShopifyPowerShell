@@ -176,12 +176,13 @@ function Get-ShopifyRestShop{
     Invoke-ShopifyRestAPIFunction -HttpMethod Get -Resource Shop -ShopName $ShopName
 }
 
-function Get-ShopifyRestProducts{
+function Get-ShopifyRestProduct {
     [cmdletbinding()]
     param(
-        [parameter(mandatory)]$ShopName
+        [parameter(mandatory)]$ShopName,
+        [Parameter(Mandatory)]$ProductId
     )
-    Invoke-ShopifyRestAPIFunction -HttpMethod Get -Resource Products -ShopName $ShopName
+    Invoke-ShopifyRestAPIFunction -HttpMethod Get -Resource Products -ShopName $ShopName -Subresource $ProductId
 }
 
 function New-ShopifyRestProduct {
@@ -399,6 +400,7 @@ function Find-ShopifyProduct {
                         node {
                             title
                             id
+                            legacyResourceId
                             handle
                             variants(first: 1) {
                                 edges {
@@ -1259,4 +1261,74 @@ function Get-ShopifyOrder {
     
     # return $Orders
     return $CurrentOrder
+}
+
+function Add-ShopifyTag {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$ShopifyGid,
+        [Parameter(Mandatory)][array]$Tags
+    )
+    $Base64EncodedGID = $ShopifyGid | ConvertTo-Base64
+    $TagsString = $Tags -join "`",`""
+    $Mutation = @"
+        mutation {
+            tagsAdd (
+                id: "$Base64EncodedGID" 
+                tags: ["$TagsString"]
+            ) {
+                node {
+                    id
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+"@
+    try {
+        $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+        if ($Response.data.tagsAdd.userErrors) { throw $Response.data.tagsAdd.userErrors.message }
+        if (-not $Response.data.tagsAdd.node.id) { throw "No node ID returned."}
+        Write-Output "$ShopifyGid`: Added tags successfully."
+    } catch {
+        Write-Warning "$ShopifyGid`: Could not add tags. $_"
+        continue
+    }
+}
+
+function Remove-ShopifyTag {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$ShopifyGid,
+        [Parameter(Mandatory)][array]$Tags
+    )
+    $Base64EncodedGID = $ShopifyGid | ConvertTo-Base64
+    $TagsString = $Tags -join "`",`""
+    $Mutation = @"
+        mutation {
+            tagsRemove (
+                id: "$Base64EncodedGID" 
+                tags: ["$TagsString"]
+            ) {
+                node {
+                    id
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+"@
+    try {
+        $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Mutation
+        if ($Response.data.tagsRemove.userErrors) { throw $Response.data.tagsRemove.userErrors.message }
+        if (-not $Response.data.tagsRemove.node.id) { throw "No node ID returned."}
+        Write-Output "$ShopifyGid`: Removed tags successfully."
+    } catch {
+        Write-Warning "$ShopifyGid`: Could not remove tags. $_"
+        continue
+    }
 }
