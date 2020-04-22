@@ -359,7 +359,8 @@ function New-ShopifyProduct {
                                 }
                             }
                         }
-                    } 
+                    }
+                    tags
                 }
                 userErrors {
                     field
@@ -491,7 +492,8 @@ function Update-ShopifyProduct {
                                 }
                             }
                         }
-                    } 
+                    }
+                    tags
                 }
                 userErrors {
                     field
