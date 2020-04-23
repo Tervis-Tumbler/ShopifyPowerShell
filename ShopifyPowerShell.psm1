@@ -752,6 +752,7 @@ function Get-ShopifyOrders {
                                 city
                             }
                         }
+                        fulfillable
                         lineItems(first: 1 $(if ($LineItemCursor) {", after:`"$LineItemCursor`""} )) {
                             edges {
                                 node {
@@ -787,6 +788,20 @@ function Get-ShopifyOrders {
                             }
                             pageInfo {
                                 hasNextPage
+                            }
+                        }
+                        shippingLine {
+                            discountedPriceSet {
+                                shopMoney {
+                                    amount
+                                }
+                            }
+                            taxLines {
+                                priceSet {
+                                    shopMoney {
+                                        amount
+                                    }
+                                }
                             }
                         }
                         events(first: 1 $(if ($EventCursor) {", after:`"$EventCursor`""} )) {
@@ -838,17 +853,18 @@ function Get-ShopifyOrders {
                 }
             }
 
-            while ($EventHasNextPage) {
-                try {
-                    $EventResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($QueryString, $CurrentOrderCursor, $LineItemCursor, $EventCursor)
-                    $CurrentOrder.events.edges += $EventResponse.data.orders.edges[0].node.events.edges[0]
-                    $EventCursor = $EventResponse.data.orders.edges[0].node.events.edges[0].cursor
-                    $EventHasNextPage = $EventResponse.data.orders.edges[0].node.events.pageInfo.hasNextPage
-                } catch {
-                    Write-Warning "Retrying event fetch"
-                    Start-Sleep -Seconds 5
-                }
-            }
+            # # Commenting out until exchanges are visited
+            # while ($EventHasNextPage) {
+            #     try {
+            #         $EventResponse = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query.Invoke($QueryString, $CurrentOrderCursor, $LineItemCursor, $EventCursor)
+            #         $CurrentOrder.events.edges += $EventResponse.data.orders.edges[0].node.events.edges[0]
+            #         $EventCursor = $EventResponse.data.orders.edges[0].node.events.edges[0].cursor
+            #         $EventHasNextPage = $EventResponse.data.orders.edges[0].node.events.pageInfo.hasNextPage
+            #     } catch {
+            #         Write-Warning "Retrying event fetch"
+            #         Start-Sleep -Seconds 5
+            #     }
+            # }
             
             $Orders += $CurrentOrder
             $CurrentOrderCursor = $NextOrderCursor
@@ -1157,6 +1173,7 @@ function Get-ShopifyOrder {
                         city
                     }
                 }
+                fulfillable
                 lineItems(first: 1 $(if ($LineItemCursor) {", after:`"$LineItemCursor`""} )) {
                     edges {
                         node {
@@ -1192,6 +1209,20 @@ function Get-ShopifyOrder {
                     }
                     pageInfo {
                         hasNextPage
+                    }
+                }
+                shippingLine {
+                    discountedPriceSet {
+                        shopMoney {
+                            amount
+                        }
+                    }
+                    taxLines {
+                        priceSet {
+                            shopMoney {
+                                amount
+                            }
+                        }
                     }
                 }
                 events(first: 1 $(if ($EventCursor) {", after:`"$EventCursor`""} )) {
