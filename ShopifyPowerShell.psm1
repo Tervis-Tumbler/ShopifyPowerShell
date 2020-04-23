@@ -433,6 +433,46 @@ function Find-ShopifyProduct {
     return $Products
 }
 
+function Find-ShopifyProductVariant {
+    param (
+        [Parameter(Mandatory)]$ShopName,
+        [Parameter(Mandatory)]$SKU
+    )
+    $Query = @"
+        {
+            productVariants(
+                query:"sku:$SKU"
+                first: 1
+            ) {
+                edges {
+                    node {
+                        id
+                        sku
+                        image {
+                            id
+                        }
+                        product {
+                            id
+                            title
+                            images (first:20) {
+                                edges {
+                                    node {
+                                        id
+                                        altText
+                                        originalSrc
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+"@
+    $Response = Invoke-ShopifyAPIFunction -ShopName $ShopName -Body $Query
+    return $Response.data.productVariants.edges.node
+}
+
 function Update-ShopifyProduct {
     param (
         [Parameter(Mandatory)]$ShopName,
