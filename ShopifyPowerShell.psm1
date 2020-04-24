@@ -1112,6 +1112,7 @@ function Get-ShopifyRefunds {
                     ) {
                         edges {
                             node {
+                                restocked
                                 lineItem {
                                     sku
                                     originalUnitPriceSet {
@@ -1148,6 +1149,11 @@ function Get-ShopifyRefunds {
                             node {
                                 gateway
                             }
+                        }
+                    }
+                    totalRefundedSet {
+                        shopMoney {
+                            amount
                         }
                     }
                 }
