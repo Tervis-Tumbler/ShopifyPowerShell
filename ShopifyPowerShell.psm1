@@ -982,6 +982,7 @@ function Set-ShopifyOrderTag {
         if ($Response.data.orderUpdate.userErrors) {
             throw $Response.data.orderUpdate.userErrors[0].message
         } else {
+            $Order.Tags = $Response.data.orderUpdate.order.tags
             return $Response.data.orderUpdate.order
         }
     }
