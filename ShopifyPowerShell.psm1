@@ -403,6 +403,7 @@ function Find-ShopifyProduct {
                             id
                             legacyResourceId
                             handle
+                            tags
                             variants(first: 1) {
                                 edges {
                                     node {
