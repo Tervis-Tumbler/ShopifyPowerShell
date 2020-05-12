@@ -314,11 +314,12 @@ function New-ShopifyProduct {
         $Price = 0,
         $Sku,
         [ValidateSet("CONTINUE","DENY")]$InventoryPolicy = "DENY",
-        [ValidateSet("true","false")]$Tracked,
+        [ValidateSet("true","false",IgnoreCase = $false)]$Tracked,
         [ValidateSet("FULFILLMENT_SERVICE","NOT_MANAGED","SHOPIFY")]$InventoryManagement,
         $ImageURL,
-        $Vendor
-        )
+        $Vendor,
+        [ValidateSet("true","false",IgnoreCase = $false)]$Taxable = "true"
+    )
 
     $Mutation = @"
         mutation {
@@ -331,6 +332,7 @@ function New-ShopifyProduct {
                         {
                             barcode: "$Barcode",
                             price: "$Price",
+                            taxable: $Taxable,
                             sku: "$Sku",
                             inventoryPolicy: $InventoryPolicy,
                             inventoryItem: {
@@ -486,11 +488,11 @@ function Update-ShopifyProduct {
         $Price,
         $Sku,
         [ValidateSet("CONTINUE","DENY")]$InventoryPolicy,
-        [ValidateSet("true","false")]$Tracked,
+        [ValidateSet("true","false",IgnoreCase = $false)]$Tracked,
         [ValidateSet("FULFILLMENT_SERVICE","NOT_MANAGED","SHOPIFY")]$InventoryManagement,
         $ImageURL,
         $Vendor
-        )
+    )
 
     $Mutation = @"
         mutation {
