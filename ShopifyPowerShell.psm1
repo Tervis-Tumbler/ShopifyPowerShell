@@ -406,6 +406,9 @@ function Find-ShopifyProduct {
                             legacyResourceId
                             handle
                             tags
+                            featuredImage {
+                                id
+                            }
                             variants(first: 1) {
                                 edges {
                                     node {
