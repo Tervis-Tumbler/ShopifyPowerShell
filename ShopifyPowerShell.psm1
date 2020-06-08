@@ -1353,7 +1353,7 @@ function Add-ShopifyTag {
     param (
         [Parameter(Mandatory)]$ShopName,
         [Parameter(Mandatory)]$ShopifyGid,
-        [Parameter(Mandatory)][array]$Tags
+        [array]$Tags
     )
     $Base64EncodedGID = $ShopifyGid | ConvertTo-Base64
     $TagsString = $Tags -join "`",`""
