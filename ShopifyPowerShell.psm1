@@ -318,7 +318,8 @@ function New-ShopifyProduct {
         [ValidateSet("FULFILLMENT_SERVICE","NOT_MANAGED","SHOPIFY")]$InventoryManagement,
         $ImageURL,
         $Vendor,
-        [ValidateSet("true","false",IgnoreCase = $false)]$Taxable = "true"
+        [ValidateSet("true","false",IgnoreCase = $false)]$Taxable = "true",
+        $MetafieldEBSDescription = "N/A"
     )
 
     $Mutation = @"
@@ -328,6 +329,14 @@ function New-ShopifyProduct {
                     title: "$Title",
                     descriptionHtml: "$Description",
                     handle: "$Handle",
+                    metafields: [
+                        {
+                            namespace: "tervis",
+                            key: "ebsDescription",
+                            value: "$MetafieldEBSDescription",
+                            valueType: STRING
+                        }
+                    ]
                     variants: [
                         {
                             barcode: "$Barcode",
@@ -381,9 +390,10 @@ function New-ShopifyProduct {
 
 function Find-ShopifyProduct {
     param (
+        [Parameter(Mandatory)]$ShopName,
         [Parameter(Mandatory,ParameterSetName = "SKU")]$SKU,
         [Parameter(Mandatory,ParameterSetName = "Title")]$Title,
-        [Parameter(Mandatory)]$ShopName
+        $MetafieldNamespace
     )
         
     $Products = @()
@@ -408,6 +418,20 @@ function Find-ShopifyProduct {
                             tags
                             featuredImage {
                                 id
+                            }
+                            metafields (
+                                first: 5
+                                namespace: "$MetafieldNamespace"
+                            ) {
+                                edges { 
+                                    node {
+                                        id
+                                        namespace
+                                        key
+                                        value
+                                        valueType
+                                    }
+                                }
                             }
                             variants(first: 1) {
                                 edges {
@@ -494,7 +518,8 @@ function Update-ShopifyProduct {
         [ValidateSet("true","false",IgnoreCase = $false)]$Tracked,
         [ValidateSet("FULFILLMENT_SERVICE","NOT_MANAGED","SHOPIFY")]$InventoryManagement,
         $ImageURL,
-        $Vendor
+        $Vendor,
+        $Metafields
     )
 
     $Mutation = @"
@@ -524,6 +549,22 @@ function Update-ShopifyProduct {
                         }
                     ],
                     vendor: "$Vendor"
+                    $(
+                        if ($Metafields) {
+                            $MetafieldObjects = foreach ($Metafield in $Metafields) {
+@"
+                        {
+                            $(if ($Metafield.id) { "id: `"$($Metafield.id)`"" })
+                            namespace: "$($Metafield.namespace)"
+                            key: "$($Metafield.key)"
+                            value: "$($Metafield.value)"
+                            valueType: $($Metafield.valueType)
+                        }
+"@
+                            }
+                            "metafields: [`n" + $($MetafieldObjects -join ",`n") + "`n`t`t`t`t`t]"
+                        }
+                    )
                 }
             ) {
                 product {
