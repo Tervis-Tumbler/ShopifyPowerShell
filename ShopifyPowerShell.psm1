@@ -1192,10 +1192,15 @@ function Get-ShopifyRefunds {
                             hasNextPage
                         }
                     }
-                    transactions(first:2) {
+                    transactions(first:3) {
                         edges {
                             node {
                                 gateway
+                                amountSet {
+                                    shopMoney {
+                                        amount
+                                    }
+                                }
                             }
                         }
                     }
