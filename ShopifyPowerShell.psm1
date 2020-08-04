@@ -891,6 +891,17 @@ function Get-ShopifyOrders {
                                 }
                             }
                         }
+                        discountCode
+                        cartDiscountAmountSet {
+                            shopMoney {
+                                amount
+                            }
+                        }
+                        totalDiscountsSet {
+                            shopMoney {
+                                amount
+                            }
+                        }
                         events(first: 1 $(if ($EventCursor) {", after:`"$EventCursor`""} )) {
                             edges {
                                 node {
