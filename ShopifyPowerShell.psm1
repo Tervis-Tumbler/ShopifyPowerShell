@@ -859,6 +859,11 @@ function Get-ShopifyOrders {
                                             amount
                                         }
                                     }
+                                    discountedTotalSet {
+                                        shopMoney {
+                                            amount
+                                        }
+                                    }
                                     taxLines {
                                         priceSet {
                                             shopMoney {
@@ -1299,6 +1304,11 @@ function Get-ShopifyOrder {
                                 }
                             }
                             discountedUnitPriceSet {
+                                shopMoney {
+                                    amount
+                                }
+                            }
+                            discountedTotalSet {
                                 shopMoney {
                                     amount
                                 }
