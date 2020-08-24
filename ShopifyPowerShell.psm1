@@ -1180,12 +1180,18 @@ function Get-ShopifyRefunds {
                                 restocked
                                 lineItem {
                                     sku
+                                    quantity
                                     originalUnitPriceSet {
                                         shopMoney {
                                             amount
                                         }
                                     }
                                     discountedUnitPriceSet {
+                                        shopMoney {
+                                            amount
+                                        }
+                                    }
+                                    discountedTotalSet {
                                         shopMoney {
                                             amount
                                         }
