@@ -1338,6 +1338,17 @@ function Get-ShopifyOrder {
                         hasNextPage
                     }
                 }
+                discountCode
+                cartDiscountAmountSet {
+                    shopMoney {
+                        amount
+                    }
+                }
+                totalDiscountsSet {
+                    shopMoney {
+                        amount
+                    }
+                }
                 shippingLine {
                     discountedPriceSet {
                         shopMoney {
