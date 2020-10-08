@@ -864,7 +864,9 @@ function Get-ShopifyOrders {
                                             amount
                                         }
                                     }
+                                    taxable
                                     taxLines {
+                                        rate
                                         priceSet {
                                             shopMoney {
                                                 amount
@@ -1320,7 +1322,9 @@ function Get-ShopifyOrder {
                                     amount
                                 }
                             }
+                            taxable
                             taxLines {
+                                rate
                                 priceSet {
                                     shopMoney {
                                         amount
