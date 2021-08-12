@@ -1181,6 +1181,7 @@ function Get-ShopifyRefunds {
                             node {
                                 restocked
                                 lineItem {
+                                    name
                                     sku
                                     quantity
                                     originalUnitPriceSet {
