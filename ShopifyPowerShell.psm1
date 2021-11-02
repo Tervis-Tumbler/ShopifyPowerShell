@@ -1063,6 +1063,7 @@ function Get-ShopifyRestOrderTransactionDetail {
             Select-Object -ExpandProperty Transactions |
             Where-Object kind -eq "sale" |
             Where-Object gateway -NE "exchange-credit" | 
+            Where-Object status -eq "success" |
             Where-Object {-not $_.error_code}
     }
 }
