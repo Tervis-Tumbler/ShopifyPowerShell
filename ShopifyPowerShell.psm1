@@ -48,7 +48,7 @@ function Invoke-ShopifyRestAPIFunction{
         $Subresource,
         $Body,
         [hashtable]$Endpoints,
-        $APIVersion = "2020-04"
+        $APIVersion = "2023-01"
     )
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $Credential = Get-ShopifyCredential
@@ -101,7 +101,7 @@ function Invoke-ShopifyAPIFunction{
     param(
         [parameter(Mandatory)]$ShopName,
         [parameter(Mandatory)]$Body,
-        $APIVersion = "2020-04"
+        $APIVersion = "2023-01"
     )
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $Credential = Get-ShopifyCredential
@@ -334,7 +334,7 @@ function New-ShopifyProduct {
                             namespace: "tervis",
                             key: "ebsDescription",
                             value: "$MetafieldEBSDescription",
-                            valueType: STRING
+                            type: STRING
                         }
                     ]
                     variants: [
@@ -429,7 +429,7 @@ function Find-ShopifyProduct {
                                         namespace
                                         key
                                         value
-                                        valueType
+                                        type
                                     }
                                 }
                             }
@@ -558,7 +558,7 @@ function Update-ShopifyProduct {
                             namespace: "$($Metafield.namespace)"
                             key: "$($Metafield.key)"
                             value: "$($Metafield.value)"
-                            valueType: $($Metafield.valueType)
+                            type: $($Metafield.type)
                         }
 "@
                             }
