@@ -334,7 +334,7 @@ function New-ShopifyProduct {
                             namespace: "tervis",
                             key: "ebsDescription",
                             value: "$MetafieldEBSDescription",
-                            type: STRING
+                            type: "string"
                         }
                     ]
                     variants: [
@@ -347,7 +347,6 @@ function New-ShopifyProduct {
                             inventoryItem: {
                                 tracked: $Tracked
                             }
-                            inventoryManagement: $InventoryManagement
                         }
                     ],
                     images: [
@@ -540,7 +539,6 @@ function Update-ShopifyProduct {
                             inventoryItem: {
                                 tracked: $Tracked
                             }
-                            inventoryManagement: $InventoryManagement
                         }
                     ],
                     images: [
@@ -558,7 +556,7 @@ function Update-ShopifyProduct {
                             namespace: "$($Metafield.namespace)"
                             key: "$($Metafield.key)"
                             value: "$($Metafield.value)"
-                            type: $($Metafield.type)
+                            type: "$($Metafield.type)"
                         }
 "@
                             }
