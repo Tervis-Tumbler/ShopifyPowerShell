@@ -349,11 +349,17 @@ function New-ShopifyProduct {
                             }
                         }
                     ],
+                    $(
+                        if ($ImageURL) {
+@"
                     images: [
                         {
                             src: "$ImageURL"
                         }
                     ],
+"@
+                        }
+                    )
                     vendor: "$Vendor"
                 }
             ) {
@@ -541,11 +547,17 @@ function Update-ShopifyProduct {
                             }
                         }
                     ],
+                    $(
+                        if ($ImageURL) {
+@"
                     images: [
                         {
                             src: "$ImageURL"
                         }
                     ],
+"@
+                        }
+                    )
                     vendor: "$Vendor"
                     $(
                         if ($Metafields) {
