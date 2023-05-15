@@ -334,7 +334,7 @@ function New-ShopifyProduct {
                             namespace: "tervis",
                             key: "ebsDescription",
                             value: "$MetafieldEBSDescription",
-                            type: "string"
+                            type: "single_line_text_field"
                         }
                     ]
                     variants: [
