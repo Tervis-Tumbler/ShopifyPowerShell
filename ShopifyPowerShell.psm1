@@ -1080,7 +1080,7 @@ function Get-ShopifyRestOrderTransactionDetail {
     process {
         Invoke-ShopifyRestAPIFunction -HttpMethod GET -ShopName $ShopName -Resource Orders -Subresource $LegacyResourceId/Transactions |
             Select-Object -ExpandProperty Transactions |
-            Where-Object kind -eq "sale" |
+            Where-Object {$_.kind -eq "capture" -or $_.kind -eq "sale"} | # Added "capture" since as of 2/28/24, Payments Gateway doesn't always mark CC txs as "sale" until much later
             Where-Object gateway -NE "exchange-credit" | 
             Where-Object status -eq "success" |
             Where-Object {-not $_.error_code}
