@@ -829,6 +829,14 @@ function Get-ShopifyOrders {
                             key
                             value
                         }
+                        metafields(first: 20) {
+                            nodes {
+                                namespace
+                                key
+                                value
+                                type
+                            }
+                        }        
                         customer {
                             displayName
                             firstName
@@ -853,6 +861,7 @@ function Get-ShopifyOrders {
                         lineItems(first: 1 $(if ($LineItemCursor) {", after:`"$LineItemCursor`""} )) {
                             edges {
                                 node {
+                                    id
                                     name
                                     sku
                                     quantity
@@ -1289,6 +1298,14 @@ function Get-ShopifyOrder {
                     key
                     value
                 }
+                metafields(first: 20) {
+                    nodes {
+                        namespace
+                        key
+                        value
+                        type
+                    }
+                }
                 customer {
                     displayName
                     firstName
@@ -1313,6 +1330,7 @@ function Get-ShopifyOrder {
                 lineItems(first: 1 $(if ($LineItemCursor) {", after:`"$LineItemCursor`""} )) {
                     edges {
                         node {
+                            id
                             name
                             sku
                             quantity
